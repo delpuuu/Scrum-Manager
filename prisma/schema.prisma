@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Admin {
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
+}
+
+model Player {
+  id              String           @id @default(uuid())
+  firstName       String
+  lastName        String
+  position        String?
+  division        String?          // NUEVO: Para saber si es M17, M19, etc.
+  matchStats      MatchStat[]
+  physicalRecords PhysicalRecord[]
+}
+
+model MatchStat {
+  id           String   @id @default(uuid())
+  playerId     String
+  date         DateTime @default(now())
+  tackles      Int
+  tries        Int
+  minutes      Int
+  conversions  Int      @default(0)
+  yellowCards  Int      @default(0)
+  redCards     Int      @default(0)
+  sensation    Int?     // NUEVO: Escala del 1 al 10.
+  notes        String?  // NUEVO: Para registrar "Golpes recibidos" o "Lesiones".
+
+  player Player @relation(fields: [playerId], references: [id])
+}
+
+model PhysicalRecord {
+  id       String   @id @default(uuid())
+  playerId String
+  metric   String
+  value    Float
+  date     DateTime
+
+  player Player @relation(fields: [playerId], references: [id])
+}
+
+model PhysicalMetric {
+  id   String @id @default(uuid())
+  name String @unique
+}
