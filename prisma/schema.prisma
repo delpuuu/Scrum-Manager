@@ -5,7 +5,12 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // LA URL YA NO VA AQUÍ EN PRISMA 7 SI USÁS CONFIG.TS
+}
+
+model Admin {
+  id       String @id @default(cuid())
+  email    String @unique
+  password String
 }
 
 model Player {
