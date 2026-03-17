@@ -1,9 +1,13 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Tus estilos personalizados abajo permanecen igual */
+@layer base {
+  :root {
+    --color-primary: #5DA62A;
+    --color-secondary: #262626;
+  }
 }
+/* ... resto de tu CSS */
 
 @theme inline {
   --color-background: var(--background);
