@@ -1,55 +1,50 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
   provider = "postgresql"
-}
-
-model Admin {
-  id       String @id @default(uuid())
-  email    String @unique
-  password String
+  // LA URL YA NO VA AQUÍ EN PRISMA 7 SI USÁS CONFIG.TS
 }
 
 model Player {
-  id              String           @id @default(uuid())
+  id              String           @id @default(cuid())
   firstName       String
   lastName        String
   position        String?
-  division        String?          
+  division        String?
   matchStats      MatchStat[]
   physicalRecords PhysicalRecord[]
+  createdAt       DateTime         @default(now())
 }
 
 model MatchStat {
-  id           String   @id @default(uuid())
+  id           String   @id @default(cuid())
   playerId     String
-  date         DateTime @default(now())
+  player       Player   @relation(fields: [playerId], references: [id])
+  date         DateTime
+  minutes      Int
   tackles      Int
   tries        Int
-  minutes      Int
   conversions  Int      @default(0)
   yellowCards  Int      @default(0)
   redCards     Int      @default(0)
-  sensation    Int?     
-  notes        String?  
-
-  player Player @relation(fields: [playerId], references: [id])
-}
-
-model PhysicalRecord {
-  id       String   @id @default(uuid())
-  playerId String
-  metric   String
-  value    Float
-  date     DateTime
-
-  player Player @relation(fields: [playerId], references: [id])
+  sensation    Int?
+  notes        String?
 }
 
 model PhysicalMetric {
-  id    String @id @default(uuid())
-  name  String @unique
-  unit  String // ESTA LÍNEA ES LA QUE MANDA
+  id   String @id @default(cuid())
+  name String @unique
+  unit String 
+}
+
+model PhysicalRecord {
+  id       String   @id @default(cuid())
+  playerId String
+  player   Player   @relation(fields: [playerId], references: [id])
+  metric   String
+  value    Float
+  date     DateTime
 }
