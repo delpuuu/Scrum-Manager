@@ -69,7 +69,7 @@ export default function PlayerSelfServicePage() {
     setMatchData((prev: any) => ({ ...prev, [field]: Math.max(0, (parseInt(prev[field]) || 0) + delta) }));
   };
 
-  if (!player) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400 font-bold uppercase text-xs tracking-widest">Sincronizando...</div>;
+  if (!player) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400 font-bold uppercase text-xs tracking-widest">Sincronizando Atleta...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 p-4 font-sans max-w-md mx-auto">

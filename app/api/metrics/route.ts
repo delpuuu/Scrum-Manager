@@ -1,36 +1,22 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> } // Cambio clave: Definimos params como Promise
+) {
   try {
-    const metrics = await prisma.physicalMetric.findMany({ 
-      orderBy: { name: 'asc' } 
-    });
-    return NextResponse.json(metrics || []);
-  } catch (error) {
-    console.error("Error al obtener métricas:", error);
-    return NextResponse.json([], { status: 200 }); 
-  }
-}
+    // En Next.js 15 es obligatorio hacer await de los params
+    const resolvedParams = await params;
+    const id = resolvedParams.id;
 
-export async function POST(request: Request) {
-  try {
-    const { name, unit } = await request.json();
-    
-    if (!name || !unit) {
-      return NextResponse.json({ error: 'Nombre y unidad requeridos' }, { status: 400 });
-    }
-    
-    const newMetric = await prisma.physicalMetric.create({ 
-      data: { 
-        name: name, 
-        unit: unit 
-      } 
+    await prisma.physicalMetric.delete({
+      where: { id: id },
     });
-    
-    return NextResponse.json(newMetric, { status: 201 });
+
+    return NextResponse.json({ message: "Métrica eliminada" });
   } catch (error) {
-    console.error("Error al crear métrica:", error);
-    return NextResponse.json({ error: 'Error al crear métrica o nombre duplicado' }, { status: 500 });
+    console.error("Error al eliminar métrica:", error);
+    return NextResponse.json({ error: "No se pudo eliminar la métrica" }, { status: 500 });
   }
 }

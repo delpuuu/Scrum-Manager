@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { currentConfig } from "@/lib/tenantConfig"; // CORREGIDO
+import { currentConfig } from "@/lib/tenantConfig";
 import { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 type MatchStat = { id: string; date: string; tackles: number; tries: number; minutes: number; conversions: number; yellowCards: number; redCards: number; sensation: number | null; notes: string | null };
@@ -18,41 +18,24 @@ type Player = {
   physicalRecords: PhysicalRecord[];
 };
 
-const PHYSICAL_METRICS = [
-  "Sentadilla (1RM - kg)", "Pecho Plano (1RM - kg)", "Despegue (1RM - kg)", 
-  "Mejor Salto (CMJ/SJ - cm)", "Peso Corporal (kg)", "Test de Resistencia (Yo-Yo/Beep)", "Otra"
-];
-
-const getUnitForMetric = (metricName: string) => {
-  if (metricName.includes('kg')) return 'kg';
-  if (metricName.includes('cm')) return 'cm';
-  return 'unidades';
-};
-
 export default function PlayerProfilePage() {
   const params = useParams();
   const router = useRouter();
   const [player, setPlayer] = useState<Player | null>(null);
+  const [availableMetrics, setAvailableMetrics] = useState<any[]>([]); // Métricas de la DB
   const [loading, setLoading] = useState(true);
 
-  // Estados Partidos
   const [showStatForm, setShowStatForm] = useState(false);
   const [statDate, setStatDate] = useState('');
-  const [minutes, setMinutes] = useState('');
-  const [tackles, setTackles] = useState('');
-  const [tries, setTries] = useState('');
-  const [conversions, setConversions] = useState('0');
-  const [yellowCards, setYellowCards] = useState('0');
-  const [redCards, setRedCards] = useState('0');
-  const [sensation, setSensation] = useState('5');
-  const [notes, setNotes] = useState('');
+  const [minutes, setMinutes] = useState('80');
+  const [tackles, setTackles] = useState('0');
+  const [tries, setTries] = useState('0');
   const [expandedStatId, setExpandedStatId] = useState<string | null>(null);
 
-  // Estados Físico
   const [showPhysicalForm, setShowPhysicalForm] = useState(false);
-  const [metric, setMetric] = useState(PHYSICAL_METRICS[0]);
+  const [selectedMetricId, setSelectedMetricId] = useState("");
   const [value, setValue] = useState('');
-  const [physDate, setPhysDate] = useState('');
+  const [physDate, setPhysDate] = useState(new Date().toISOString().split('T')[0]);
   const [expandedPhysDate, setExpandedPhysDate] = useState<string | null>(null);
 
   const [selectedChartMetric, setSelectedChartMetric] = useState<string>('');
@@ -69,31 +52,47 @@ export default function PlayerProfilePage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchPlayer(); }, [params.id]);
+  const fetchMetrics = async () => {
+    const res = await fetch('/api/metrics');
+    if (res.ok) {
+      const data = await res.json();
+      setAvailableMetrics(data);
+      if (data.length > 0) setSelectedMetricId(data[0].id);
+    }
+  };
+
+  useEffect(() => { 
+    fetchPlayer(); 
+    fetchMetrics();
+  }, [params.id]);
+
+  const currentMetricObj = availableMetrics.find(m => m.id === selectedMetricId);
 
   const handleAddStat = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await fetch(`/api/players/${params.id}/stats`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date: statDate, minutes, tackles, tries, conversions, yellowCards, redCards, sensation, notes }),
+      body: JSON.stringify({ date: statDate, minutes, tackles, tries }),
     });
     if (res.ok) {
-      setStatDate(''); setMinutes(''); setTackles(''); setTries(''); setConversions('0'); setShowStatForm(false);
+      setStatDate(''); setShowStatForm(false);
       fetchPlayer();
     }
   };
 
   const handleAddPhysical = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentMetricObj) return;
     const res = await fetch(`/api/players/${params.id}/physical`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ metric, value, date: physDate }),
+      body: JSON.stringify({ metric: currentMetricObj.name, value, date: physDate }),
     });
     if (res.ok) {
-      setValue(''); setPhysDate(''); setShowPhysicalForm(false);
-      setSelectedChartMetric(metric); fetchPlayer();
+      setValue(''); setShowPhysicalForm(false);
+      setSelectedChartMetric(currentMetricObj.name); 
+      fetchPlayer();
     }
   };
 
@@ -105,7 +104,7 @@ export default function PlayerProfilePage() {
     if (confirm('¿Eliminar registro?')) await fetch(`/api/physical/${id}`, { method: 'DELETE' }).then(() => fetchPlayer());
   };
 
-  if (loading) return <div className="min-h-screen bg-gray-50 p-8 text-center font-bold text-gray-400 uppercase tracking-widest">Cargando perfil...</div>;
+  if (loading) return <div className="min-h-screen bg-gray-50 p-8 text-center font-bold text-gray-400 uppercase tracking-widest text-xs">Sincronizando Atleta...</div>;
   if (!player) return null;
 
   const groupedPhysical = player.physicalRecords.reduce((acc, record) => {
@@ -117,7 +116,7 @@ export default function PlayerProfilePage() {
 
   const matchChartData = player.matchStats.map((stat) => ({
     fecha: new Date(stat.date).toLocaleDateString('es-AR', { timeZone: 'UTC', month: 'short', day: 'numeric' }),
-    Tackles: stat.tackles, Tries: stat.tries, Conversiones: stat.conversions, Minutos: stat.minutes,
+    Tackles: stat.tackles, Tries: stat.tries, Minutos: stat.minutes,
   })).reverse();
 
   const physicalChartData = player.physicalRecords.filter(r => r.metric === selectedChartMetric).map((r) => ({
@@ -129,7 +128,6 @@ export default function PlayerProfilePage() {
     <div className="min-h-screen bg-gray-50 p-6 md:p-10 text-gray-900 font-sans">
       <div className="max-w-7xl mx-auto">
         
-        {/* HEADER TORQUE LAB */}
         <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-4 pb-6" style={{ borderColor: "var(--color-primary)" }}>
           <div>
             <h1 className="text-4xl font-black tracking-tighter uppercase italic" style={{ color: "var(--color-secondary)" }}>
@@ -137,7 +135,6 @@ export default function PlayerProfilePage() {
             </h1>
             <div className="flex gap-2 mt-1">
               <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest border border-gray-200">{player.division || 'Sin división'}</span>
-              {/* CAMBIO: Texto ahora usa el Gris Secundario dinámico */}
               <span className="bg-[var(--color-primary)] text-[var(--color-secondary)] text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest shadow-sm">
                 {player.position || 'Sin posición'}
               </span>
@@ -150,11 +147,10 @@ export default function PlayerProfilePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           
-          {/* PANEL PARTIDOS */}
           <section className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
             <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 border-b pb-2 flex justify-between items-center">
               Estadísticas de Partido
-              <button onClick={() => setShowStatForm(!showStatForm)} className="text-[10px] bg-[var(--color-primary)] text-white px-3 py-1 rounded-full hover:opacity-90 transition">
+              <button onClick={() => setShowStatForm(!showStatForm)} className="text-[10px] bg-[var(--color-primary)] text-[var(--color-secondary)] px-3 py-1 rounded-full hover:opacity-90 transition font-bold">
                 {showStatForm ? 'Cerrar' : '+ Cargar'}
               </button>
             </h2>
@@ -167,7 +163,7 @@ export default function PlayerProfilePage() {
                    <input type="number" placeholder="Tackles" required value={tackles} onChange={(e) => setTackles(e.target.value)} className="bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
                    <input type="number" placeholder="Tries" required value={tries} onChange={(e) => setTries(e.target.value)} className="bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
                 </div>
-                <button type="submit" className="w-full bg-[var(--color-primary)] text-white font-bold text-xs py-3 rounded-xl uppercase tracking-widest shadow-md">Guardar Partido</button>
+                <button type="submit" className="w-full bg-[var(--color-primary)] text-[var(--color-secondary)] font-black text-xs py-3 rounded-xl uppercase tracking-widest shadow-md">Guardar Partido</button>
               </form>
             )}
 
@@ -189,25 +185,27 @@ export default function PlayerProfilePage() {
             </ul>
           </section>
 
-          {/* PANEL FÍSICO */}
           <section className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
             <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 border-b pb-2 flex justify-between items-center">
               Evolución Física
-              <button onClick={() => setShowPhysicalForm(!showPhysicalForm)} className="text-[10px] bg-[var(--color-primary)] text-white px-3 py-1 rounded-full hover:opacity-90 transition">
+              <button onClick={() => setShowPhysicalForm(!showPhysicalForm)} className="text-[10px] bg-[var(--color-primary)] text-[var(--color-secondary)] px-3 py-1 rounded-full hover:opacity-90 transition font-bold">
                 {showPhysicalForm ? 'Cerrar' : '+ Cargar'}
               </button>
             </h2>
 
             {showPhysicalForm && (
               <form onSubmit={handleAddPhysical} className="mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-4">
-                <select value={metric} onChange={(e) => setMetric(e.target.value)} className="w-full bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]">
-                  {PHYSICAL_METRICS.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-                <div className="grid grid-cols-2 gap-3">
-                  <input type="number" placeholder={`Valor (${getUnitForMetric(metric)})`} required value={value} onChange={(e) => setValue(e.target.value)} className="bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
-                  <input type="date" required value={physDate} onChange={(e) => setPhysDate(e.target.value)} className="bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+                <div className="flex gap-2">
+                  <select value={selectedMetricId} onChange={(e) => setSelectedMetricId(e.target.value)} className="flex-1 bg-white border border-gray-200 rounded-xl p-2 text-xs font-bold uppercase outline-none focus:ring-2 focus:ring-[var(--color-primary)]">
+                    {availableMetrics.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                  <div className="relative w-24">
+                    <input type="number" placeholder="Valor" required value={value} onChange={(e) => setValue(e.target.value)} className="w-full bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)] text-center font-bold" />
+                    <span className="absolute -top-2 -right-1 bg-gray-800 text-white text-[8px] px-1.5 py-0.5 rounded font-black uppercase">{currentMetricObj?.unit || '--'}</span>
+                  </div>
                 </div>
-                <button type="submit" className="w-full bg-[var(--color-primary)] text-white font-bold text-xs py-3 rounded-xl uppercase tracking-widest shadow-md">Guardar Medición</button>
+                <input type="date" required value={physDate} onChange={(e) => setPhysDate(e.target.value)} className="w-full bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+                <button type="submit" className="w-full bg-[var(--color-primary)] text-[var(--color-secondary)] font-black text-xs py-3 rounded-xl uppercase tracking-widest shadow-md">Guardar Medición</button>
               </form>
             )}
 
@@ -235,7 +233,7 @@ export default function PlayerProfilePage() {
 
         </div>
 
-        {/* GRÁFICOS */}
+        {/* GRÁFICOS CON COLORES TORQUE LAB */}
         {(player.matchStats.length > 0 || player.physicalRecords.length > 0) && (
           <section className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mb-8">
             <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-10 border-b pb-2">RENDIMIENTO VISUAL</h2>
