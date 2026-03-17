@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { currentConfig } from "@/lib/tenantConfig"; // CORREGIDO
+import { currentConfig } from '@/lib/tenantConfig';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('admin@scrum.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState(''); // Vacío por seguridad
+  const [password, setPassword] = useState(''); // Vacío por seguridad
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const router = useRouter();
@@ -26,9 +26,9 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        localStorage.setItem('isLoggedIn', 'true');
+        // Redirigimos al dashboard tras el éxito
         router.push('/admin/dashboard');
-        router.refresh(); // Forzamos al middleware a re-evaluar
+        router.refresh();
       } else {
         setErrorMsg(data.error || 'Credenciales inválidas');
         setLoading(false);
@@ -48,7 +48,7 @@ export default function LoginPage() {
             {currentConfig.tenantName}
           </h1>
           <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">
-            Acceso Staff Técnico
+            Gestión de Acceso
           </p>
         </header>
         
@@ -60,11 +60,12 @@ export default function LoginPage() {
         
         <div className="space-y-5">
           <div>
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Email Institucional</label>
+            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Usuario / Email</label>
             <input 
-              type="email" 
+              type="text" 
               value={email} 
               onChange={e => setEmail(e.target.value)} 
+              placeholder="Ingresá tu usuario"
               className="w-full p-4 rounded-xl bg-gray-50 border border-gray-100 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all font-bold text-sm" 
               required 
               disabled={loading} 
@@ -76,6 +77,7 @@ export default function LoginPage() {
               type="password" 
               value={password} 
               onChange={e => setPassword(e.target.value)} 
+              placeholder="••••••••"
               className="w-full p-4 rounded-xl bg-gray-50 border border-gray-100 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all font-bold text-sm" 
               required 
               disabled={loading} 
@@ -87,7 +89,7 @@ export default function LoginPage() {
             disabled={loading} 
             className="w-full bg-[var(--color-primary)] hover:opacity-90 p-4 rounded-xl text-white font-black transition-all uppercase text-xs tracking-[0.2em] disabled:opacity-50 mt-4 shadow-lg shadow-gray-200"
           >
-            {loading ? 'VERIFICANDO...' : 'Ingresar'}
+            {loading ? 'VERIFICANDO...' : 'Ingresar al Panel'}
           </button>
         </div>
 

@@ -3,12 +3,13 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   const { email, password } = await request.json();
 
-  if (email === 'admin@scrum.com' && password === 'admin123') {
+  // CREDENCIALES ACTUALIZADAS: LucianoAbatedaga
+  if (email === 'LucianoAbatedaga' && password === 'Torque_2026_Scrum') {
     const response = NextResponse.json({ message: "Login exitoso" });
     
-    // Guardamos la sesión en una Cookie (accesible por el middleware)
+    // Seteamos la Cookie de sesión
     response.cookies.set('auth_token', 'true', {
-      httpOnly: true, // Seguridad: no accesible por JS del cliente
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       path: '/',
       maxAge: 60 * 60 * 24 // 24 horas
@@ -17,5 +18,5 @@ export async function POST(request: Request) {
     return response;
   }
 
-  return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 });
+  return NextResponse.json({ error: "Usuario o clave incorrectos" }, { status: 401 });
 }
