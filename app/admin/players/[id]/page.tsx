@@ -137,7 +137,10 @@ export default function PlayerProfilePage() {
             </h1>
             <div className="flex gap-2 mt-1">
               <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest border border-gray-200">{player.division || 'Sin división'}</span>
-              <span className="bg-[var(--color-primary)] bg-opacity-10 text-[var(--color-primary)] text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest">{player.position || 'Sin posición'}</span>
+              {/* CORRECCIÓN: Fondo verde sólido con texto BLANCO para contraste total */}
+<span className="bg-[var(--color-primary)] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest shadow-sm">
+  {player.position || 'Sin posición'}
+</span>
             </div>
           </div>
           <Link href="/admin/dashboard" className="bg-white border border-gray-200 px-6 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-[var(--color-primary)] transition-all uppercase tracking-widest shadow-sm">

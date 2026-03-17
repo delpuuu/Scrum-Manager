@@ -1,18 +1,21 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const { email, password } = body;
+  const { email, password } = await request.json();
 
-  // Validación dura para el Staff
   if (email === 'admin@scrum.com' && password === 'admin123') {
-    // En una app real acá crearíamos una Cookie de sesión. 
-    // Por ahora, le damos luz verde al frontend.
-    return NextResponse.json({ message: "Login exitoso" }, { status: 200 });
+    const response = NextResponse.json({ message: "Login exitoso" });
+    
+    // Guardamos la sesión en una Cookie (accesible por el middleware)
+    response.cookies.set('auth_token', 'true', {
+      httpOnly: true, // Seguridad: no accesible por JS del cliente
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 60 * 60 * 24 // 24 horas
+    });
+
+    return response;
   }
 
-  return NextResponse.json(
-    { error: "Credenciales inválidas" }, 
-    { status: 401 }
-  );
+  return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 });
 }

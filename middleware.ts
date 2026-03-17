@@ -1,12 +1,23 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server'; // Corregido: de 'next/server'
+import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // Por ahora, el guardián deja pasar a todos. 
-  // Una vez que confirmemos que el login visual anda, activamos la seguridad.
+  const token = request.cookies.get('auth_token');
+  const { pathname } = request.nextUrl;
+
+  // 1. Si intenta entrar a /admin y NO tiene token, mandarlo al Login
+  if (!token && pathname.startsWith('/admin') && pathname !== '/admin/login') {
+    return NextResponse.redirect(new URL('/admin/login', request.url));
+  }
+
+  // 2. Si YA tiene token e intenta ir al Login, mandarlo al Dashboard
+  if (token && pathname === '/admin/login') {
+    return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/admin/:path*'], // Solo aplica a rutas que empiecen con /admin
+  matcher: ['/admin/:path*'],
 };
