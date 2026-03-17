@@ -1,9 +1,16 @@
 import { defineConfig } from '@prisma/config';
+import * as dotenv from 'dotenv';
+
+// Forzamos la carga del archivo .env al inicio
+dotenv.config();
+
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL no está definida en el archivo .env");
+}
 
 export default defineConfig({
   schema: './prisma/schema.prisma',
   datasource: {
-    // Prisma 7 requiere que la URL esté presente aquí para comandos como 'db push'
-    url: process.env.DATABASE_URL as string,
+    url: process.env.DATABASE_URL,
   },
 });
