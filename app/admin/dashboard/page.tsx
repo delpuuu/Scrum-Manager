@@ -11,6 +11,7 @@ const POSICIONES_RUGBY = [
 
 export default function DashboardPage() {
   const [players, setPlayers] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState(''); // Estado para el buscador
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [division, setDivision] = useState('');
@@ -65,6 +66,11 @@ export default function DashboardPage() {
     alert('¡Link de carga copiado!');
   };
 
+  // Lógica de filtrado en tiempo real
+  const filteredPlayers = players.filter(p => 
+    `${p.firstName} ${p.lastName} ${p.division}`.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 p-6 md:p-10 text-gray-900 font-sans">
       <div className="max-w-7xl mx-auto">
@@ -101,12 +107,11 @@ export default function DashboardPage() {
                 </div>
                 <input type="text" placeholder="División (ej: M19)" value={division} onChange={e => setDivision(e.target.value)} className="w-full bg-gray-50 border-gray-100 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none transition-all"/>
                 
-                {/* SELECT DE POSICIONES */}
                 <select 
                   value={position} 
                   onChange={e => setPosition(e.target.value)} 
                   required 
-                  className="w-full bg-gray-50 border-gray-100 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none transition-all"
+                  className="w-full bg-gray-50 border-gray-100 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none transition-all font-bold"
                 >
                   <option value="" disabled>Seleccionar Posición</option>
                   {POSICIONES_RUGBY.map(pos => (
@@ -114,7 +119,7 @@ export default function DashboardPage() {
                   ))}
                 </select>
                 
-                <button className="w-full bg-[var(--color-primary)] text-white font-bold py-4 rounded-2xl hover:opacity-90 transition-all uppercase text-xs tracking-widest shadow-lg shadow-gray-200">
+                <button className="w-full bg-[var(--color-primary)] text-[var(--color-secondary)] font-black py-4 rounded-2xl hover:opacity-90 transition-all uppercase text-xs tracking-widest shadow-lg shadow-gray-200">
                   {editingId ? 'Actualizar Ficha' : 'Guardar Jugador'}
                 </button>
                 
@@ -140,44 +145,63 @@ export default function DashboardPage() {
             </section>
           </div>
 
-          <section className="lg:col-span-8 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-              <h2 className="font-black text-gray-800 uppercase tracking-tight text-sm">Lista del Plantel</h2>
-              <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest italic">{currentConfig.poweredByLabel}</span>
+          <section className="lg:col-span-8 space-y-4">
+            {/* BARRA DE BÚSQUEDA */}
+            <div className="bg-white p-2 rounded-2xl shadow-sm border border-gray-100 flex items-center px-4">
+              <span className="text-gray-300 mr-3">🔍</span>
+              <input 
+                type="text" 
+                placeholder="Buscar por nombre, apellido o división..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full p-2 bg-transparent outline-none text-sm font-medium text-gray-600 placeholder:text-gray-300"
+              />
             </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50/50 text-gray-400 text-[10px] font-black uppercase tracking-widest">
-                    <th className="px-6 py-5">Atleta</th>
-                    <th className="px-6 py-5">División</th>
-                    <th className="px-6 py-5">Posición</th>
-                    <th className="px-6 py-5 text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {players.map((p) => (
-                    <tr key={p.id} className="hover:bg-gray-50 transition-colors group">
-                      <td className="px-6 py-5">
-                        <Link href={`/admin/players/${p.id}`} className="block">
-                          <p className="font-bold text-gray-700 uppercase text-sm group-hover:text-[var(--color-primary)] transition-colors">{p.lastName}, {p.firstName}</p>
-                        </Link>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className="bg-gray-100 text-gray-600 text-[10px] font-black px-3 py-1 rounded-lg border border-gray-200 uppercase">{p.division || 'S/D'}</span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <p className="text-xs font-bold text-gray-400 uppercase">{p.position || '---'}</p>
-                      </td>
-                      <td className="px-6 py-5 text-right space-x-4">
-                        <button onClick={() => handleCopyLink(p.id)} className="text-[10px] font-black text-gray-400 hover:text-[var(--color-primary)] transition-colors uppercase tracking-widest border-b border-transparent hover:border-[var(--color-primary)]">Link</button>
-                        <button onClick={() => handleEdit(p)} className="text-[10px] font-black text-gray-300 hover:text-gray-900 transition-colors uppercase tracking-widest">Editar</button>
-                      </td>
+
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                <h2 className="font-black text-gray-800 uppercase tracking-tight text-sm">Lista del Plantel</h2>
+                <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest italic">{currentConfig.poweredByLabel}</span>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50/50 text-gray-400 text-[10px] font-black uppercase tracking-widest">
+                      <th className="px-6 py-5">Atleta</th>
+                      <th className="px-6 py-5">División</th>
+                      <th className="px-6 py-5">Posición</th>
+                      <th className="px-6 py-5 text-right">Acciones</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filteredPlayers.map((p) => (
+                      <tr key={p.id} className="hover:bg-gray-50 transition-colors group">
+                        <td className="px-6 py-5">
+                          <Link href={`/admin/players/${p.id}`} className="block">
+                            <p className="font-bold text-gray-700 uppercase text-sm group-hover:text-[var(--color-primary)] transition-colors">{p.lastName}, {p.firstName}</p>
+                          </Link>
+                        </td>
+                        <td className="px-6 py-5">
+                          <span className="bg-gray-100 text-gray-600 text-[10px] font-black px-3 py-1 rounded-lg border border-gray-200 uppercase">{p.division || 'S/D'}</span>
+                        </td>
+                        <td className="px-6 py-5">
+                          <p className="text-xs font-bold text-gray-400 uppercase">{p.position || '---'}</p>
+                        </td>
+                        <td className="px-6 py-5 text-right space-x-4">
+                          <button onClick={() => handleCopyLink(p.id)} className="text-[10px] font-black text-gray-400 hover:text-[var(--color-primary)] transition-colors uppercase tracking-widest border-b border-transparent hover:border-[var(--color-primary)]">Link</button>
+                          <button onClick={() => handleEdit(p)} className="text-[10px] font-black text-gray-300 hover:text-gray-900 transition-colors uppercase tracking-widest">Editar</button>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredPlayers.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-10 text-center text-gray-300 italic text-sm">No se encontraron atletas con ese criterio.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </section>
 
