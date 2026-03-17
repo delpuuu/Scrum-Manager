@@ -6,25 +6,28 @@ export async function GET() {
     const metrics = await prisma.physicalMetric.findMany({ 
       orderBy: { name: 'asc' } 
     });
-    // Si no hay métricas, devolvemos un array vacío pero en formato JSON
     return NextResponse.json(metrics || []);
   } catch (error) {
     console.error("Error al obtener métricas:", error);
-    return NextResponse.json([], { status: 200 }); // Devolvemos vacío para no romper el front
+    return NextResponse.json([], { status: 200 }); 
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const { name } = await request.json();
-    if (!name) return NextResponse.json({ error: 'Nombre requerido' }, { status: 400 });
+    const { name, unit } = await request.json();
+    
+    if (!name || !unit) {
+      return NextResponse.json({ error: 'Nombre y unidad requeridos' }, { status: 400 });
+    }
     
     const newMetric = await prisma.physicalMetric.create({ 
-      data: { name } 
+      data: { name, unit } 
     });
+    
     return NextResponse.json(newMetric, { status: 201 });
   } catch (error) {
     console.error("Error al crear métrica:", error);
-    return NextResponse.json({ error: 'Error al crear métrica' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al crear métrica o nombre duplicado' }, { status: 500 });
   }
 }

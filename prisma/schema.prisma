@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  // Aquí YA NO VA la línea de url
 }
 
 model Admin {
@@ -17,7 +18,7 @@ model Player {
   firstName       String
   lastName        String
   position        String?
-  division        String?          // NUEVO: Para saber si es M17, M19, etc.
+  division        String?          
   matchStats      MatchStat[]
   physicalRecords PhysicalRecord[]
 }
@@ -32,8 +33,8 @@ model MatchStat {
   conversions  Int      @default(0)
   yellowCards  Int      @default(0)
   redCards     Int      @default(0)
-  sensation    Int?     // NUEVO: Escala del 1 al 10.
-  notes        String?  // NUEVO: Para registrar "Golpes recibidos" o "Lesiones".
+  sensation    Int?     
+  notes        String?  
 
   player Player @relation(fields: [playerId], references: [id])
 }
@@ -49,6 +50,7 @@ model PhysicalRecord {
 }
 
 model PhysicalMetric {
-  id   String @id @default(uuid())
-  name String @unique
+  id    String @id @default(uuid())
+  name  String @unique
+  unit  String
 }
