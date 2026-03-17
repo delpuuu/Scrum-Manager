@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // Aquí YA NO VA la línea de url
 }
 
 model Admin {
@@ -52,5 +51,5 @@ model PhysicalRecord {
 model PhysicalMetric {
   id    String @id @default(uuid())
   name  String @unique
-  unit  String
+  unit  String // ESTA LÍNEA ES LA QUE MANDA
 }

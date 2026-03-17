@@ -22,7 +22,10 @@ export async function POST(request: Request) {
     }
     
     const newMetric = await prisma.physicalMetric.create({ 
-      data: { name, unit } 
+      data: { 
+        name: name, 
+        unit: unit 
+      } 
     });
     
     return NextResponse.json(newMetric, { status: 201 });

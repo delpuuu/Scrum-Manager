@@ -26,8 +26,11 @@ export default function SettingsPage() {
     fetchMetrics();
   };
 
-  const handleDeleteMetric = async (id: string) => {
-    alert('Función de borrado en desarrollo.');
+  const handleDeleteMetric = async (id: string, name: string) => {
+    if (confirm(`¿Estás seguro de eliminar "${name}"? Esto no afectará los registros históricos ya cargados.`)) {
+      const res = await fetch(`/api/metrics/${id}`, { method: 'DELETE' });
+      if (res.ok) fetchMetrics();
+    }
   };
 
   return (
@@ -47,17 +50,22 @@ export default function SettingsPage() {
           <form onSubmit={handleAddMetric} className="flex flex-col md:flex-row gap-3 mb-8">
             <input type="text" placeholder="Ej: Sentadilla" value={newMetric} onChange={e => setNewMetric(e.target.value)} className="flex-2 bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)] font-bold" />
             <input type="text" placeholder="Unidad (kg, cm...)" value={newUnit} onChange={e => setNewUnit(e.target.value)} className="flex-1 bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)] font-bold text-center" />
-            <button className="bg-[var(--color-primary)] text-[var(--color-secondary)] px-8 py-4 rounded-2xl font-black uppercase text-xs shadow-lg hover:opacity-90 transition-all">Agregar</button>
+            <button className="bg-[var(--color-primary)] text-[var(--color-secondary)] px-8 py-4 rounded-2xl font-black uppercase text-xs shadow-lg hover:opacity-90">Agregar</button>
           </form>
 
           <div className="grid grid-cols-1 gap-3">
             {metrics.map(m => (
-              <div key={m.id} className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-50 group">
+              <div key={m.id} className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-50 group hover:border-[var(--color-primary)] transition-all">
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-black text-gray-700 uppercase">{m.name}</span>
                   <span className="text-[10px] font-bold bg-gray-200 text-gray-500 px-2 py-1 rounded-lg uppercase tracking-widest">{m.unit}</span>
                 </div>
-                <span onClick={() => handleDeleteMetric(m.id)} className="text-[9px] font-black text-gray-300 group-hover:text-red-400 cursor-pointer transition-colors uppercase tracking-widest">ELIMINAR</span>
+                <button 
+                  onClick={() => handleDeleteMetric(m.id, m.name)} 
+                  className="text-[9px] font-black text-gray-300 hover:text-red-500 transition-colors uppercase tracking-widest"
+                >
+                  ELIMINAR
+                </button>
               </div>
             ))}
           </div>
