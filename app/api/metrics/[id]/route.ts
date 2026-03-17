@@ -3,11 +3,10 @@ import { prisma } from '@/lib/prisma';
 
 export async function DELETE(
   request: Request,
-  context: { params: Promise<{ id: string }> } // CAMBIO CLAVE: params es una Promesa
+  { params }: { params: Promise<{ id: string }> } // Aquí sí van los params
 ) {
   try {
-    // En Next.js 15, DEBÉS esperar a que los params se resuelvan
-    const { id } = await context.params;
+    const { id } = await params; // Await obligatorio en Next 15
 
     await prisma.physicalMetric.delete({
       where: { id: id },
@@ -16,6 +15,6 @@ export async function DELETE(
     return NextResponse.json({ message: "Métrica eliminada" });
   } catch (error) {
     console.error("Error al eliminar métrica:", error);
-    return NextResponse.json({ error: "No se pudo eliminar la métrica" }, { status: 500 });
+    return NextResponse.json({ error: "No se pudo eliminar" }, { status: 500 });
   }
 }
