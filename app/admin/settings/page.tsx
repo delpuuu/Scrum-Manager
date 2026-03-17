@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { currentConfig } from '@/lib/tenantCOnfig';
 
 export default function SettingsPage() {
   const [metrics, setMetrics] = useState<any[]>([]);
@@ -29,19 +30,27 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-10 text-slate-900 font-sans">
+    <div className="min-h-screen bg-gray-50 p-6 md:p-10 text-gray-900 font-sans">
       <div className="max-w-3xl mx-auto">
         
-        <header className="mb-10 flex items-center justify-between">
+        {/* HEADER TORQUE LAB */}
+        <header className="mb-10 flex items-center justify-between border-b-4 pb-6" style={{ borderColor: "var(--color-primary)" }}>
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">Configuración</h1>
-            <p className="text-slate-500 font-medium">Personalización de métricas de rendimiento</p>
+            <h1 className="text-3xl font-black tracking-tighter uppercase italic" style={{ color: "var(--color-secondary)" }}>
+              Configuración
+            </h1>
+            <p className="text-gray-500 font-bold text-xs uppercase tracking-widest mt-1">Métricas de rendimiento</p>
           </div>
-          <Link href="/admin/dashboard" className="text-xs font-bold bg-slate-200 px-4 py-2 rounded-xl uppercase">Volver</Link>
+          <Link 
+            href="/admin/dashboard" 
+            className="bg-white border border-gray-200 px-6 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-[var(--color-primary)] transition-all uppercase tracking-widest shadow-sm"
+          >
+            Volver
+          </Link>
         </header>
 
-        <section className="bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
-          <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6">Ejercicios Disponibles</h2>
+        <section className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+          <h2 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mb-6">Ejercicios Disponibles</h2>
           
           <form onSubmit={handleAddMetric} className="flex gap-3 mb-8">
             <input 
@@ -49,29 +58,41 @@ export default function SettingsPage() {
               placeholder="Ej: Salto Largo, Press Militar..." 
               value={newMetric} 
               onChange={e => setNewMetric(e.target.value)} 
-              className="flex-1 bg-slate-50 border-slate-200 rounded-2xl p-4 text-sm outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+              className="flex-1 bg-gray-50 border-gray-100 rounded-2xl p-4 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
             />
-            <button className="bg-orange-500 text-white px-8 rounded-2xl font-black uppercase text-xs shadow-lg shadow-orange-100 hover:bg-orange-600 transition-all">Agregar</button>
+            <button className="bg-[var(--color-primary)] text-white px-8 rounded-2xl font-black uppercase text-xs shadow-lg shadow-gray-100 hover:opacity-90 transition-all">
+              Agregar
+            </button>
           </form>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {metrics.map(m => (
-              <div key={m.id} className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 group">
-                <span className="text-sm font-bold text-slate-700 uppercase">{m.name}</span>
-                <span className="text-[10px] font-black text-slate-300 group-hover:text-red-400 cursor-pointer transition-colors" onClick={() => handleDeleteMetric(m.id)}>ELIMINAR</span>
+              <div key={m.id} className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-50 group hover:border-[var(--color-primary)] transition-colors">
+                <span className="text-sm font-bold text-gray-700 uppercase">{m.name}</span>
+                <span 
+                    className="text-[10px] font-black text-gray-300 group-hover:text-red-400 cursor-pointer transition-colors uppercase tracking-widest" 
+                    onClick={() => handleDeleteMetric(m.id)}
+                >
+                    ELIMINAR
+                </span>
               </div>
             ))}
-            {metrics.length === 0 && <p className="text-slate-400 italic text-sm col-span-2 text-center py-10">No has configurado ejercicios todavía.</p>}
+            {metrics.length === 0 && (
+                <p className="text-gray-400 italic text-sm col-span-2 text-center py-10">No has configurado ejercicios todavía.</p>
+            )}
           </div>
         </section>
 
-        <div className="mt-10 p-6 bg-blue-50 rounded-3xl border border-blue-100">
-          <p className="text-xs text-blue-800 leading-relaxed font-medium">
-            <strong>Nota:</strong> Los ejercicios que agregues aquí aparecerán instantáneamente en el link de carga que tienen los jugadores en sus celulares.
+        <div className="mt-10 p-6 bg-gray-100 rounded-3xl border border-gray-200">
+          <p className="text-xs text-gray-600 leading-relaxed font-medium">
+            <strong className="text-[var(--color-primary)] uppercase">Nota:</strong> Los ejercicios que agregues aquí aparecerán instantáneamente en el link de carga que tienen los jugadores en sus celulares.
           </p>
         </div>
 
       </div>
+      <footer className="mt-12 text-center text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em]">
+        {currentConfig.poweredByLabel}
+      </footer>
     </div>
   );
 }

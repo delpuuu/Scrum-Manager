@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { currentConfig } from '@/lib/tenantCOnfig';
 import { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 type MatchStat = { id: string; date: string; tackles: number; tries: number; minutes: number; conversions: number; yellowCards: number; redCards: number; sensation: number | null; notes: string | null };
@@ -104,10 +105,9 @@ export default function PlayerProfilePage() {
     if (confirm('¿Eliminar registro?')) await fetch(`/api/physical/${id}`, { method: 'DELETE' }).then(() => fetchPlayer());
   };
 
-  if (loading) return <div className="min-h-screen bg-gray-100 p-8 text-center font-medium">Cargando...</div>;
+  if (loading) return <div className="min-h-screen bg-gray-50 p-8 text-center font-bold text-gray-400 uppercase tracking-widest">Cargando perfil...</div>;
   if (!player) return null;
 
-  // Lógica para agrupar registros físicos por fecha
   const groupedPhysical = player.physicalRecords.reduce((acc, record) => {
     const dateStr = new Date(record.date).toLocaleDateString('es-AR', { timeZone: 'UTC' });
     if (!acc[dateStr]) acc[dateStr] = [];
@@ -126,51 +126,59 @@ export default function PlayerProfilePage() {
   })).reverse();
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8 text-gray-800">
-      <div className="max-w-6xl mx-auto">
-        <header className="mb-6 flex justify-between items-center">
+    <div className="min-h-screen bg-gray-50 p-6 md:p-10 text-gray-900 font-sans">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* HEADER TORQUE LAB */}
+        <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-4 pb-6" style={{ borderColor: "var(--color-primary)" }}>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{player.lastName}, {player.firstName}</h1>
+            <h1 className="text-4xl font-black tracking-tighter uppercase italic" style={{ color: "var(--color-secondary)" }}>
+              {player.lastName}, {player.firstName}
+            </h1>
             <div className="flex gap-2 mt-1">
-              <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">{player.division || 'Sin división'}</span>
-              <span className="text-gray-600 font-medium text-xs py-1">{player.position || 'Sin posición'}</span>
+              <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest border border-gray-200">{player.division || 'Sin división'}</span>
+              <span className="bg-[var(--color-primary)] bg-opacity-10 text-[var(--color-primary)] text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest">{player.position || 'Sin posición'}</span>
             </div>
           </div>
-          <Link href="/admin/dashboard" className="bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded-md hover:bg-gray-400">Volver</Link>
+          <Link href="/admin/dashboard" className="bg-white border border-gray-200 px-6 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-[var(--color-primary)] transition-all uppercase tracking-widest shadow-sm">
+            Volver al Panel
+          </Link>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           
-          {/* Panel Partidos (Acordeón por ID) */}
-          <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <h2 className="text-xl font-semibold mb-4 border-b pb-2 flex justify-between items-center">
+          {/* PANEL PARTIDOS */}
+          <section className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+            <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 border-b pb-2 flex justify-between items-center">
               Estadísticas de Partido
-              <button onClick={() => setShowStatForm(!showStatForm)} className="text-xs bg-blue-600 text-white px-2 py-1 rounded">{showStatForm ? 'Cerrar' : '+ Cargar'}</button>
+              <button onClick={() => setShowStatForm(!showStatForm)} className="text-[10px] bg-[var(--color-primary)] text-white px-3 py-1 rounded-full hover:opacity-90 transition">
+                {showStatForm ? 'Cerrar' : '+ Cargar'}
+              </button>
             </h2>
 
             {showStatForm && (
-              <form onSubmit={handleAddStat} className="mb-4 bg-gray-50 p-4 rounded-md border border-gray-200 space-y-3">
-                <input type="date" required value={statDate} onChange={(e) => setStatDate(e.target.value)} className="w-full border rounded p-1 text-sm" />
-                <div className="grid grid-cols-3 gap-2">
-                   <input type="number" placeholder="Min" required value={minutes} onChange={(e) => setMinutes(e.target.value)} className="border rounded p-1 text-sm" />
-                   <input type="number" placeholder="Tackles" required value={tackles} onChange={(e) => setTackles(e.target.value)} className="border rounded p-1 text-sm" />
-                   <input type="number" placeholder="Tries" required value={tries} onChange={(e) => setTries(e.target.value)} className="border rounded p-1 text-sm" />
+              <form onSubmit={handleAddStat} className="mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-4">
+                <input type="date" required value={statDate} onChange={(e) => setStatDate(e.target.value)} className="w-full bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+                <div className="grid grid-cols-3 gap-3">
+                   <input type="number" placeholder="Min" required value={minutes} onChange={(e) => setMinutes(e.target.value)} className="bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+                   <input type="number" placeholder="Tackles" required value={tackles} onChange={(e) => setTackles(e.target.value)} className="bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+                   <input type="number" placeholder="Tries" required value={tries} onChange={(e) => setTries(e.target.value)} className="bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
                 </div>
-                <button type="submit" className="w-full bg-green-600 text-white text-sm py-1.5 rounded">Guardar Partido</button>
+                <button type="submit" className="w-full bg-[var(--color-primary)] text-white font-bold text-xs py-3 rounded-xl uppercase tracking-widest shadow-md">Guardar Partido</button>
               </form>
             )}
 
-            <ul className="divide-y divide-gray-200 h-64 overflow-y-auto pr-2">
+            <ul className="divide-y divide-gray-50 h-64 overflow-y-auto pr-2 custom-scrollbar">
               {player.matchStats.map((stat) => (
                 <li key={stat.id} className="py-2">
-                  <div className="flex justify-between items-center cursor-pointer p-2 hover:bg-gray-50 rounded" onClick={() => setExpandedStatId(expandedStatId === stat.id ? null : stat.id)}>
-                    <span className="font-semibold text-blue-700">{new Date(stat.date).toLocaleDateString('es-AR', { timeZone: 'UTC' })}</span>
-                    <span className="text-gray-400 text-xs">{expandedStatId === stat.id ? '▲' : '▼'}</span>
+                  <div className="flex justify-between items-center cursor-pointer p-3 hover:bg-gray-50 rounded-xl transition" onClick={() => setExpandedStatId(expandedStatId === stat.id ? null : stat.id)}>
+                    <span className="font-bold text-sm text-gray-700">{new Date(stat.date).toLocaleDateString('es-AR', { timeZone: 'UTC' })}</span>
+                    <span className="text-gray-300 text-[10px] font-black">{expandedStatId === stat.id ? '▲' : '▼'}</span>
                   </div>
                   {expandedStatId === stat.id && (
-                    <div className="bg-gray-50 p-3 mt-1 rounded border border-gray-200 text-xs">
+                    <div className="bg-gray-50 p-4 mt-1 rounded-xl border border-gray-100 text-xs text-gray-500">
                       <p>Minutos: {stat.minutes} | Tackles: {stat.tackles} | Tries: {stat.tries}</p>
-                      <button onClick={() => handleDeleteStat(stat.id)} className="text-red-500 mt-2 font-bold">Eliminar</button>
+                      <button onClick={() => handleDeleteStat(stat.id)} className="text-red-400 mt-3 font-black uppercase tracking-tighter hover:text-red-600 transition">Eliminar Partido</button>
                     </div>
                   )}
                 </li>
@@ -178,41 +186,41 @@ export default function PlayerProfilePage() {
             </ul>
           </section>
 
-          {/* Panel Físico (Acordeón por Fecha - NUEVO) */}
-          <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <h2 className="text-xl font-semibold mb-4 border-b pb-2 flex justify-between items-center">
+          {/* PANEL FÍSICO */}
+          <section className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+            <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 border-b pb-2 flex justify-between items-center">
               Evolución Física
-              <button onClick={() => setShowPhysicalForm(!showPhysicalForm)} className="text-xs bg-blue-600 text-white px-2 py-1 rounded">{showPhysicalForm ? 'Cerrar' : '+ Cargar'}</button>
+              <button onClick={() => setShowPhysicalForm(!showPhysicalForm)} className="text-[10px] bg-[var(--color-primary)] text-white px-3 py-1 rounded-full hover:opacity-90 transition">
+                {showPhysicalForm ? 'Cerrar' : '+ Cargar'}
+              </button>
             </h2>
 
             {showPhysicalForm && (
-              <form onSubmit={handleAddPhysical} className="mb-4 bg-gray-50 p-4 rounded-md border border-gray-200 space-y-3">
-                <select value={metric} onChange={(e) => setMetric(e.target.value)} className="w-full border rounded p-1 text-sm">{PHYSICAL_METRICS.map(m => <option key={m} value={m}>{m}</option>)}</select>
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="number" placeholder={`Valor (${getUnitForMetric(metric)})`} required value={value} onChange={(e) => setValue(e.target.value)} className="border rounded p-1 text-sm" />
-                  <input type="date" required value={physDate} onChange={(e) => setPhysDate(e.target.value)} className="border rounded p-1 text-sm" />
+              <form onSubmit={handleAddPhysical} className="mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-4">
+                <select value={metric} onChange={(e) => setMetric(e.target.value)} className="w-full bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]">
+                  {PHYSICAL_METRICS.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <div className="grid grid-cols-2 gap-3">
+                  <input type="number" placeholder={`Valor (${getUnitForMetric(metric)})`} required value={value} onChange={(e) => setValue(e.target.value)} className="bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
+                  <input type="date" required value={physDate} onChange={(e) => setPhysDate(e.target.value)} className="bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
                 </div>
-                <button type="submit" className="w-full bg-green-600 text-white text-sm py-1.5 rounded">Guardar Medición</button>
+                <button type="submit" className="w-full bg-[var(--color-primary)] text-white font-bold text-xs py-3 rounded-xl uppercase tracking-widest shadow-md">Guardar Medición</button>
               </form>
             )}
 
-            <ul className="divide-y divide-gray-200 h-64 overflow-y-auto pr-2">
+            <ul className="divide-y divide-gray-50 h-64 overflow-y-auto pr-2 custom-scrollbar">
               {Object.keys(groupedPhysical).map((dateKey) => (
                 <li key={dateKey} className="py-2">
-                  <div 
-                    className="flex justify-between items-center cursor-pointer p-2 hover:bg-gray-50 rounded" 
-                    onClick={() => setExpandedPhysDate(expandedPhysDate === dateKey ? null : dateKey)}
-                  >
-                    <span className="font-semibold text-orange-700">Mediciones: {dateKey}</span>
-                    <span className="text-gray-400 text-xs">{expandedPhysDate === dateKey ? '▲' : '▼'}</span>
+                  <div className="flex justify-between items-center cursor-pointer p-3 hover:bg-gray-50 rounded-xl transition" onClick={() => setExpandedPhysDate(expandedPhysDate === dateKey ? null : dateKey)}>
+                    <span className="font-bold text-sm text-[var(--color-primary)]">{dateKey}</span>
+                    <span className="text-gray-300 text-[10px] font-black">{expandedPhysDate === dateKey ? '▲' : '▼'}</span>
                   </div>
-                  
                   {expandedPhysDate === dateKey && (
-                    <div className="bg-orange-50 p-3 mt-1 rounded border border-orange-100 space-y-2">
+                    <div className="bg-gray-50 p-4 mt-1 rounded-xl border border-gray-100 space-y-3">
                       {groupedPhysical[dateKey].map((record) => (
-                        <div key={record.id} className="flex justify-between items-center text-xs border-b border-orange-200 pb-1 last:border-0">
-                          <span><strong>{record.metric}:</strong> {record.value}</span>
-                          <button onClick={() => handleDeletePhysical(record.id)} className="text-red-500 font-bold ml-2">X</button>
+                        <div key={record.id} className="flex justify-between items-center text-xs text-gray-500 border-b border-gray-100 pb-2 last:border-0 last:pb-0">
+                          <span><strong className="text-gray-700">{record.metric}:</strong> {record.value}</span>
+                          <button onClick={() => handleDeletePhysical(record.id)} className="text-red-300 hover:text-red-500 font-black">X</button>
                         </div>
                       ))}
                     </div>
@@ -224,30 +232,41 @@ export default function PlayerProfilePage() {
 
         </div>
 
-        {/* Gráficos */}
+        {/* GRÁFICOS */}
         {(player.matchStats.length > 0 || player.physicalRecords.length > 0) && (
-          <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
-            <h2 className="text-2xl font-semibold mb-6 border-b pb-2">Rendimiento Gráfico</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="h-72 flex flex-col">
-                <h3 className="text-center text-sm font-bold text-gray-700 mb-4">Métricas Globales</h3>
+          <section className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mb-8">
+            <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-10 border-b pb-2">RENDIMIENTO VISUAL</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              <div className="h-80 flex flex-col">
+                <h3 className="text-center text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mb-6">Métricas Globales de Partido</h3>
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={matchChartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="fecha" tick={{ fontSize: 10 }} /><YAxis yAxisId="left" tick={{ fontSize: 10 }} /><YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} stroke="#F97316" /><Tooltip /><Legend wrapperStyle={{ fontSize: '10px' }} />
-                    <Bar yAxisId="left" dataKey="Tackles" fill="#2563EB" radius={[4, 4, 0, 0]} /><Bar yAxisId="left" dataKey="Tries" fill="#10B981" radius={[4, 4, 0, 0]} /><Line yAxisId="right" type="monotone" dataKey="Minutos" stroke="#F97316" strokeWidth={3} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                    <XAxis dataKey="fecha" tick={{ fontSize: 10, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 10, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: '#64748B' }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                    <Legend wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }} />
+                    <Bar yAxisId="left" dataKey="Tackles" fill="#E2E8F0" radius={[4, 4, 0, 0]} />
+                    <Bar yAxisId="left" dataKey="Tries" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+                    <Line yAxisId="right" type="monotone" dataKey="Minutos" stroke="var(--color-secondary)" strokeWidth={3} dot={{ r: 4, fill: "var(--color-secondary)" }} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
-              <div className="h-72 flex flex-col">
-                <div className="flex justify-between mb-4">
-                  <h3 className="text-sm font-bold text-gray-700">Evolución Física</h3>
-                  <select value={selectedChartMetric} onChange={(e) => setSelectedChartMetric(e.target.value)} className="text-xs border rounded p-1">
+              <div className="h-80 flex flex-col">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em]">Evolución Física</h3>
+                  <select value={selectedChartMetric} onChange={(e) => setSelectedChartMetric(e.target.value)} className="text-[10px] border-none bg-gray-50 font-bold uppercase p-2 rounded-lg outline-none">
                     {Array.from(new Set(player.physicalRecords.map(r => r.metric))).map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={physicalChartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="fecha" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} domain={['auto', 'auto']} /><Tooltip /><Line type="monotone" dataKey="Valor" stroke="#F59E0B" strokeWidth={3} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                    <XAxis dataKey="fecha" tick={{ fontSize: 10, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: '#94A3B8' }} domain={['auto', 'auto']} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                    <Line type="monotone" dataKey="Valor" stroke="var(--color-primary)" strokeWidth={4} dot={{ r: 6, fill: "var(--color-primary)" }} activeDot={{ r: 8 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -255,6 +274,9 @@ export default function PlayerProfilePage() {
           </section>
         )}
       </div>
+      <footer className="mt-12 text-center text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em]">
+        {currentConfig.poweredByLabel}
+      </footer>
     </div>
   );
 }
