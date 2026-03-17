@@ -2,7 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { currentConfig } from '@/lib/tenantConfig'; // CORREGIDO
+import { currentConfig } from '@/lib/tenantConfig';
+
+const POSICIONES_RUGBY = [
+  "Pilar", "Hooker", "Segunda Línea", "Ala (Flanker)", "Octavo", 
+  "Medio Scrum", "Apertura", "Centro", "Wing", "Fullback"
+];
 
 export default function DashboardPage() {
   const [players, setPlayers] = useState<any[]>([]);
@@ -28,8 +33,19 @@ export default function DashboardPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ firstName, lastName, division, position }),
     });
-    setFirstName(''); setLastName(''); setDivision(''); setPosition(''); setEditingId(null);
+    resetForm();
     fetchPlayers();
+  };
+
+  const handleDelete = async () => {
+    if (!editingId) return;
+    if (confirm(`¿Estás seguro de que deseas eliminar a ${firstName} ${lastName}?`)) {
+      const res = await fetch(`/api/players/${editingId}`, { method: 'DELETE' });
+      if (res.ok) {
+        resetForm();
+        fetchPlayers();
+      }
+    }
   };
 
   const handleEdit = (p: any) => {
@@ -38,6 +54,10 @@ export default function DashboardPage() {
     setLastName(p.lastName);
     setDivision(p.division || '');
     setPosition(p.position || '');
+  };
+
+  const resetForm = () => {
+    setFirstName(''); setLastName(''); setDivision(''); setPosition(''); setEditingId(null);
   };
 
   const handleCopyLink = (id: string) => {
@@ -49,7 +69,6 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50 p-6 md:p-10 text-gray-900 font-sans">
       <div className="max-w-7xl mx-auto">
         
-        {/* HEADER DINÁMICO TORQUE LAB */}
         <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-4 pb-6" style={{ borderColor: "var(--color-primary)" }}>
           <div>
             <h1 className="text-4xl font-black tracking-tighter uppercase italic" style={{ color: "var(--color-secondary)" }}>
@@ -70,7 +89,6 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* FORMULARIO DE REGISTRO */}
           <div className="lg:col-span-4">
             <section className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 sticky top-10">
               <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 border-b pb-2">
@@ -82,20 +100,46 @@ export default function DashboardPage() {
                   <input type="text" placeholder="Apellido" value={lastName} onChange={e => setLastName(e.target.value)} required className="w-full bg-gray-50 border-gray-100 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none transition-all"/>
                 </div>
                 <input type="text" placeholder="División (ej: M19)" value={division} onChange={e => setDivision(e.target.value)} className="w-full bg-gray-50 border-gray-100 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none transition-all"/>
-                <input type="text" placeholder="Posición" value={position} onChange={e => setPosition(e.target.value)} className="w-full bg-gray-50 border-gray-100 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none transition-all"/>
+                
+                {/* SELECT DE POSICIONES */}
+                <select 
+                  value={position} 
+                  onChange={e => setPosition(e.target.value)} 
+                  required 
+                  className="w-full bg-gray-50 border-gray-100 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[var(--color-primary)] outline-none transition-all"
+                >
+                  <option value="" disabled>Seleccionar Posición</option>
+                  {POSICIONES_RUGBY.map(pos => (
+                    <option key={pos} value={pos}>{pos}</option>
+                  ))}
+                </select>
                 
                 <button className="w-full bg-[var(--color-primary)] text-white font-bold py-4 rounded-2xl hover:opacity-90 transition-all uppercase text-xs tracking-widest shadow-lg shadow-gray-200">
                   {editingId ? 'Actualizar Ficha' : 'Guardar Jugador'}
                 </button>
                 
                 {editingId && (
-                  <button type="button" onClick={() => {setEditingId(null); setFirstName(''); setLastName(''); setPosition(''); setDivision('');}} className="w-full bg-gray-100 text-gray-500 py-2 rounded-xl text-xs font-bold uppercase mt-2">Cancelar</button>
+                  <div className="space-y-2">
+                    <button 
+                      type="button" 
+                      onClick={handleDelete} 
+                      className="w-full bg-red-50 text-red-600 border border-red-100 font-bold py-2 rounded-xl text-xs uppercase tracking-widest hover:bg-red-100 transition-all"
+                    >
+                      Eliminar Atleta
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={resetForm} 
+                      className="w-full bg-gray-100 text-gray-500 py-2 rounded-xl text-xs font-bold uppercase"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
                 )}
               </form>
             </section>
           </div>
 
-          {/* LISTADO DE JUGADORES */}
           <section className="lg:col-span-8 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
               <h2 className="font-black text-gray-800 uppercase tracking-tight text-sm">Lista del Plantel</h2>
