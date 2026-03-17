@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { currentConfig } from "@/lib/tenantCOnfig"; // Importamos la config de Torque Lab
+import { currentConfig } from "@/lib/tenantConfig"; // CORREGIDO
 import "./globals.css";
 
 const geistSans = Geist({

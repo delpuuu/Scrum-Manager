@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { currentConfig } from '@/lib/tenantCOnfig';
+import { currentConfig } from '@/lib/tenantConfig'; // CORREGIDO
 
 export default function DashboardPage() {
   const [players, setPlayers] = useState<any[]>([]);

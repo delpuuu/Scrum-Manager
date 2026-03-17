@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { currentConfig } from '@/lib/tenantCOnfig';
+import { currentConfig } from "@/lib/tenantConfig"; // CORREGIDO
 
 export default function PlayerSelfServicePage() {
   const params = useParams();

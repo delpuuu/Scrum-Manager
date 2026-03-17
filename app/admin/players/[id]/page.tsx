@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { currentConfig } from '@/lib/tenantCOnfig';
+import { currentConfig } from "@/lib/tenantConfig"; // CORREGIDO
 import { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 type MatchStat = { id: string; date: string; tackles: number; tries: number; minutes: number; conversions: number; yellowCards: number; redCards: number; sensation: number | null; notes: string | null };
