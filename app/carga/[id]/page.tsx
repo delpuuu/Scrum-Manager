@@ -11,7 +11,6 @@ export default function PlayerEntryPage() {
   const [player, setPlayer] = useState<any>(null);
   const [metrics, setMetrics] = useState<any[]>([]);
   
-  // Solo estados para Físico (nada de partidos)
   const [selectedMetricId, setSelectedMetricId] = useState("");
   const [value, setValue] = useState('');
   const [reps, setReps] = useState('1');
@@ -42,7 +41,6 @@ export default function PlayerEntryPage() {
     const metricObj = metrics.find(m => m.id === selectedMetricId);
     if (!metricObj) return;
 
-    // Solo impacta en el endpoint de físico
     const res = await fetch(`/api/players/${params.id}/physical`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -59,6 +57,10 @@ export default function PlayerEntryPage() {
 
   if (!player) return <div className="min-h-screen bg-gray-900 flex items-center justify-center"><p className="text-[var(--color-primary)] font-black uppercase text-xs animate-pulse">Cargando Perfil...</p></div>;
 
+  // Obtenemos el ejercicio seleccionado para saber su unidad dinámica
+  const currentMetric = metrics.find(m => m.id === selectedMetricId);
+  const metricLabel = currentMetric && currentMetric.unit ? `Valor (${currentMetric.unit})` : 'Valor / Marca';
+
   return (
     <div className="min-h-screen bg-gray-900 p-4 md:p-8 flex flex-col items-center font-sans text-white">
       <div className="w-full max-w-md">
@@ -72,7 +74,6 @@ export default function PlayerEntryPage() {
           </p>
         </header>
 
-        {/* ÚNICO FORMULARIO: CARGA FÍSICA */}
         <form onSubmit={handleSubmit} className="bg-gray-800 p-8 rounded-[2.5rem] shadow-2xl border border-gray-700 mb-6">
           <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 border-b border-gray-700 pb-2">Registro de Gimnasio</h2>
           
@@ -86,7 +87,8 @@ export default function PlayerEntryPage() {
             
             <div className="flex gap-4">
               <div className="flex-1">
-                <label className="text-[10px] uppercase font-black text-gray-400 block mb-2 ml-1">Peso (kg)</label>
+                {/* LA ETIQUETA DINÁMICA ESTÁ ACÁ */}
+                <label className="text-[10px] uppercase font-black text-gray-400 block mb-2 ml-1">{metricLabel}</label>
                 <input type="number" required value={value} onChange={e => setValue(e.target.value)} className="w-full bg-gray-900 border border-gray-700 p-4 rounded-2xl font-bold text-white outline-none focus:ring-2 focus:ring-[var(--color-primary)] text-center" placeholder="Ej: 100" />
               </div>
               <div className="flex-1">
@@ -105,10 +107,6 @@ export default function PlayerEntryPage() {
             </button>
           </div>
         </form>
-
-        <Link href="/leaderboard" className="block w-full text-center bg-gray-800 border border-gray-700 text-white font-black text-[10px] py-4 rounded-2xl uppercase tracking-[0.3em] hover:bg-gray-700 transition-colors">
-          Ver Ranking Global 🏆
-        </Link>
         
         <footer className="mt-12 text-center text-[8px] font-bold text-gray-600 uppercase tracking-[0.4em] mb-8">
           {currentConfig.poweredByLabel}
