@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { currentConfig } from "@/lib/tenantConfig";
 
 type Player = {
@@ -18,6 +19,7 @@ const RUGBY_POSITIONS = ["Pilar", "Hooker", "Segunda Línea", "Tercera Línea", 
 export default function AdminDashboardPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter(); // Agregado para la navegación por fila
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -60,20 +62,14 @@ export default function AdminDashboardPage() {
     setIsSubmitting(false);
   };
 
-  const handleDeletePlayer = async (id: string) => {
-    if (!confirm('¿Seguro que querés eliminar a este atleta?')) return;
-    await fetch(`/api/players/${id}`, { method: 'DELETE' });
-    fetchPlayers();
-  };
-
-  const copyLink = (id: string) => {
+  const copyLink = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Evita que al hacer clic en copiar, te lleve al perfil
     const url = `${window.location.origin}/carga/${id}`;
     navigator.clipboard.writeText(url);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // PUNTO 1: Ranking por peso máximo directo sin calcular RM
   const getLeaderboard = () => {
     if (!selectedLeaderboardMetric) return [];
     const leaderboard = players.map(player => {
@@ -132,13 +128,23 @@ export default function AdminDashboardPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {players.length > 0 ? players.map(player => (
-                    <tr key={player.id} className="hover:bg-gray-50">
-                      <td className="py-3 px-2 font-bold">{player.lastName}, {player.firstName}</td>
+                    <tr 
+                      key={player.id} 
+                      onClick={() => router.push(`/admin/players/${player.id}`)}
+                      className="hover:bg-gray-50 cursor-pointer group transition-colors"
+                    >
+                      <td className="py-3 px-2 font-black text-gray-800 group-hover:text-[var(--color-primary)] transition-colors">
+                        {player.lastName}, {player.firstName}
+                      </td>
                       <td className="py-3 px-2 text-gray-500 text-xs">{player.division || '-'}</td>
                       <td className="py-3 px-2 text-[var(--color-primary)] font-bold text-xs">{player.position || '-'}</td>
                       <td className="py-3 px-2 text-right space-x-3">
-                        <button onClick={() => copyLink(player.id)} className={`text-[10px] font-black uppercase tracking-widest ${copiedId === player.id ? 'text-green-500' : 'text-gray-400 hover:text-gray-800'}`}>{copiedId === player.id ? '¡COPIADO!' : 'Copiar Link'}</button>
-                        <Link href={`/admin/players/${player.id}`} className="text-[10px] font-black text-[var(--color-primary)] hover:underline uppercase tracking-widest">Ver Perfil</Link>
+                        <button 
+                          onClick={(e) => copyLink(e, player.id)} 
+                          className={`text-[10px] font-black uppercase tracking-widest bg-white border px-3 py-1.5 rounded-md shadow-sm transition-colors ${copiedId === player.id ? 'border-green-500 text-green-500' : 'border-gray-200 text-gray-500 hover:border-gray-400'}`}
+                        >
+                          {copiedId === player.id ? '✓ COPIADO' : 'Copiar Link'}
+                        </button>
                       </td>
                     </tr>
                   )) : <tr><td colSpan={4} className="text-center py-10 text-xs text-gray-400 font-bold uppercase">Sin atletas</td></tr>}

@@ -57,6 +57,18 @@ export default function PlayerProfilePage() {
 
   useEffect(() => { fetchPlayer(); fetchMetrics(); }, [params.id]);
 
+  // FUNCIÓN PARA ELIMINAR EL JUGADOR COMPLETO
+  const handleDeleteFullPlayer = async () => {
+    if (!confirm('🚨 ATENCIÓN: ¿Estás seguro de que querés ELIMINAR a este atleta? Se borrará todo su historial físico y de partidos para siempre.')) return;
+    
+    const res = await fetch(`/api/players/${params.id}`, { method: 'DELETE' });
+    if (res.ok) {
+      router.push('/admin/dashboard');
+    } else {
+      alert("Hubo un error al intentar eliminar al jugador.");
+    }
+  };
+
   const handleAddStat = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await fetch(`/api/players/${params.id}/stats`, {
@@ -107,7 +119,6 @@ export default function PlayerProfilePage() {
     filteredMetricRecords = filteredMetricRecords.filter(r => new Date(r.date) >= start && new Date(r.date) <= end);
   }
 
-  // PUNTO 1: Gráfico con Peso Máximo Crudo y Tooltip Personalizado con Repeticiones
   const metricRecordsChronological = [...filteredMetricRecords].reverse();
   const dailyMax: Record<string, {peso: number, reps: number}> = {};
   
@@ -124,7 +135,6 @@ export default function PlayerProfilePage() {
     reps: dailyMax[date].reps
   }));
 
-  // Tooltip customizado para mostrar "X peso - X reps"
   const CustomPhysicalTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -149,7 +159,17 @@ export default function PlayerProfilePage() {
               <span className="bg-[var(--color-primary)] text-white text-[10px] font-black px-2 py-0.5 rounded uppercase">{player.position || 'Sin posición'}</span>
             </div>
           </div>
-          <Link href="/admin/dashboard" className="bg-white border border-gray-200 px-6 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-[var(--color-primary)] transition-all uppercase shadow-sm">Volver</Link>
+          <div className="flex gap-3">
+            <button 
+              onClick={handleDeleteFullPlayer} 
+              className="bg-red-50 text-red-500 border border-red-100 px-6 py-2 rounded-xl text-xs font-black hover:bg-red-500 hover:text-white transition-all uppercase shadow-sm"
+            >
+              Eliminar Atleta
+            </button>
+            <Link href="/admin/dashboard" className="bg-white border border-gray-200 px-6 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-[var(--color-primary)] transition-all uppercase shadow-sm">
+              Volver
+            </Link>
+          </div>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
@@ -181,7 +201,7 @@ export default function PlayerProfilePage() {
                   {expandedStatId === stat.id && (
                     <div className="bg-gray-50 p-4 mt-1 rounded-xl border border-gray-100 text-xs text-gray-500">
                       <p>Minutos: {stat.minutes} | Tackles: {stat.tackles} | Tries: {stat.tries}</p>
-                      <button onClick={() => handleDeleteStat(stat.id)} className="text-red-400 mt-3 font-black uppercase hover:text-red-600 block">Eliminar Partido</button>
+                      <button onClick={() => handleDeleteStat(stat.id)} className="text-red-400 mt-3 font-black uppercase hover:text-red-600 block">Eliminar Registro</button>
                     </div>
                   )}
                 </li>
