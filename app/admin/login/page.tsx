@@ -2,101 +2,116 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { currentConfig } from '@/lib/tenantConfig';
+import { currentConfig } from "@/lib/tenantConfig";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState(''); // Vacío por seguridad
-  const [password, setPassword] = useState(''); // Vacío por seguridad
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setErrorMsg('');
-    
+    setIsLoading(true);
+    setError(''); // Limpiamos errores previos
+
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      
+
       const data = await res.json();
 
       if (res.ok) {
-        // Redirigimos al dashboard tras el éxito
+        // Redirección exitosa, no hace falta quitar el loading porque desmonta la página
         router.push('/admin/dashboard');
-        router.refresh();
       } else {
-        setErrorMsg(data.error || 'Credenciales inválidas');
-        setLoading(false);
+        // Acá estaba el bug: Liberamos el estado y mostramos el error
+        setError(data.error || 'Credenciales inválidas');
+        setIsLoading(false); 
       }
-    } catch (error) {
-      setErrorMsg('Error de conexión con el servidor.');
-      setLoading(false);
+    } catch (err) {
+      setError('Error de conexión con el servidor');
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 font-sans text-gray-900">
-      <form onSubmit={handleLogin} className="bg-white p-10 rounded-3xl shadow-xl border border-gray-100 w-full max-w-md">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4 font-sans">
+      <div className="w-full max-w-md">
         
-        <header className="mb-8 text-center border-b-4 pb-6" style={{ borderColor: "var(--color-primary)" }}>
-          <h1 className="text-3xl font-black tracking-tighter uppercase italic" style={{ color: "var(--color-secondary)" }}>
+        <header className="text-center mb-10">
+          <h1 className="text-5xl font-black tracking-tighter uppercase italic drop-shadow-sm" style={{ color: "var(--color-secondary)" }}>
             {currentConfig.tenantName}
           </h1>
-          <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">
-            Gestión de Acceso
-          </p>
+          <div className="mt-3 inline-block bg-[var(--color-primary)] text-[var(--color-secondary)] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-[0.3em] shadow-sm">
+            Acceso Restringido
+          </div>
         </header>
-        
-        {errorMsg && (
-          <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-xl text-[10px] font-black mb-6 text-center uppercase tracking-widest">
-            {errorMsg}
-          </div>
-        )}
-        
-        <div className="space-y-5">
-          <div>
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Usuario / Email</label>
-            <input 
-              type="text" 
-              value={email} 
-              onChange={e => setEmail(e.target.value)} 
-              placeholder="Ingresá tu usuario"
-              className="w-full p-4 rounded-xl bg-gray-50 border border-gray-100 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all font-bold text-sm" 
-              required 
-              disabled={loading} 
-            />
-          </div>
-          <div>
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Contraseña</label>
-            <input 
-              type="password" 
-              value={password} 
-              onChange={e => setPassword(e.target.value)} 
-              placeholder="••••••••"
-              className="w-full p-4 rounded-xl bg-gray-50 border border-gray-100 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all font-bold text-sm" 
-              required 
-              disabled={loading} 
-            />
-          </div>
+
+        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100 space-y-6">
           
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl animate-fade-in">
+              <p className="text-[10px] text-red-700 font-black uppercase tracking-widest">{error}</p>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-2 ml-1">
+                Correo Electrónico
+              </label>
+              <input 
+                type="email" 
+                required 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                disabled={isLoading}
+                className="w-full bg-gray-50 border-none p-4 rounded-2xl font-bold text-gray-800 outline-none ring-1 ring-gray-100 focus:ring-2 focus:ring-[var(--color-primary)] transition-all disabled:opacity-50"
+                placeholder="admin@torque.com"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-2 ml-1">
+                Contraseña
+              </label>
+              <input 
+                type="password" 
+                required 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                disabled={isLoading}
+                className="w-full bg-gray-50 border-none p-4 rounded-2xl font-bold text-gray-800 outline-none ring-1 ring-gray-100 focus:ring-2 focus:ring-[var(--color-primary)] transition-all disabled:opacity-50"
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+
           <button 
             type="submit" 
-            disabled={loading} 
-            className="w-full bg-[var(--color-primary)] hover:opacity-90 p-4 rounded-xl text-white font-black transition-all uppercase text-xs tracking-[0.2em] disabled:opacity-50 mt-4 shadow-lg shadow-gray-200"
+            disabled={isLoading} 
+            className="w-full bg-[var(--color-secondary)] text-white font-black text-xs py-5 rounded-2xl uppercase tracking-[0.2em] shadow-lg hover:bg-gray-800 active:scale-95 transition-all disabled:opacity-70 flex justify-center items-center gap-2"
           >
-            {loading ? 'VERIFICANDO...' : 'Ingresar al Panel'}
+            {isLoading ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-[var(--color-primary)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Verificando...
+              </>
+            ) : (
+              'Iniciar Sesión'
+            )}
           </button>
-        </div>
+        </form>
 
-        <footer className="mt-8 text-center">
-           <p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">{currentConfig.poweredByLabel}</p>
+        <footer className="mt-12 text-center text-[8px] font-bold text-gray-400 uppercase tracking-[0.4em]">
+          {currentConfig.poweredByLabel}
         </footer>
-      </form>
+      </div>
     </div>
   );
 }
