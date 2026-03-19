@@ -6,10 +6,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resolvedParams = await params;
-    const id = resolvedParams.id;
+    const { id } = await params;
     const body = await request.json();
-    const { metric, value, date } = body;
+    const { metric, value, reps, date } = body;
 
     if (!metric || value === undefined || !date) {
       return NextResponse.json({ error: 'Métrica, valor y fecha son obligatorios' }, { status: 400 });
@@ -20,6 +19,7 @@ export async function POST(
         playerId: id,
         metric,
         value: Number(value),
+        reps: reps ? Number(reps) : 1, // Fallback de seguridad
         date: new Date(date),
       },
     });

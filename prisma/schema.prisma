@@ -51,5 +51,6 @@ model PhysicalRecord {
   player   Player   @relation(fields: [playerId], references: [id])
   metric   String
   value    Float
+  reps     Int      @default(1) 
   date     DateTime
 }
