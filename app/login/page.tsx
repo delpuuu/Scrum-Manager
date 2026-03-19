@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { currentConfig } from "@/lib/tenantConfig";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -14,22 +14,21 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(''); // Limpiamos errores previos
+    setError('');
 
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        // Mandamos 'username' bajo la llave 'email' porque así se llama la columna en tu DB de Prisma
+        body: JSON.stringify({ email: username, password }), 
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        // Redirección exitosa, no hace falta quitar el loading porque desmonta la página
         router.push('/admin/dashboard');
       } else {
-        // Acá estaba el bug: Liberamos el estado y mostramos el error
         setError(data.error || 'Credenciales inválidas');
         setIsLoading(false); 
       }
@@ -44,12 +43,9 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         
         <header className="text-center mb-10">
-          <h1 className="text-5xl font-black tracking-tighter uppercase italic drop-shadow-sm" style={{ color: "var(--color-secondary)" }}>
+          <h1 className="text-6xl font-black tracking-tighter uppercase italic drop-shadow-sm" style={{ color: "var(--color-secondary)" }}>
             {currentConfig.tenantName}
           </h1>
-          <div className="mt-3 inline-block bg-[var(--color-primary)] text-[var(--color-secondary)] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-[0.3em] shadow-sm">
-            Acceso Restringido
-          </div>
         </header>
 
         <form onSubmit={handleSubmit} className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100 space-y-6">
@@ -63,16 +59,16 @@ export default function LoginPage() {
           <div className="space-y-4">
             <div>
               <label className="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-2 ml-1">
-                Correo Electrónico
+                Usuario
               </label>
               <input 
-                type="email" 
+                type="text" 
                 required 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
+                value={username} 
+                onChange={(e) => setUsername(e.target.value)} 
                 disabled={isLoading}
                 className="w-full bg-gray-50 border-none p-4 rounded-2xl font-bold text-gray-800 outline-none ring-1 ring-gray-100 focus:ring-2 focus:ring-[var(--color-primary)] transition-all disabled:opacity-50"
-                placeholder="admin@torque.com"
+                placeholder="Ingresá tu usuario"
               />
             </div>
 
