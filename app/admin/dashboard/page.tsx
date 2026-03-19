@@ -13,6 +13,12 @@ type Player = {
   physicalRecords: { metric: string; value: number; reps: number }[];
 };
 
+const RUGBY_POSITIONS = [
+  "Pilar", "Hooker", "Segunda Línea", "Tercera Línea", 
+  "Octavo", "Medio Scrum", "Apertura", "Centro", 
+  "Wing", "Fullback"
+];
+
 export default function AdminDashboardPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +30,9 @@ export default function AdminDashboardPage() {
   const [position, setPosition] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Estado para UX de copiar link
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
   // Estados del Leaderboard
   const [selectedLeaderboardMetric, setSelectedLeaderboardMetric] = useState<string>('');
   const [metrics, setMetrics] = useState<string[]>([]);
@@ -34,7 +43,6 @@ export default function AdminDashboardPage() {
       const data = await res.json();
       setPlayers(data);
       
-      // Extraer métricas para el Leaderboard
       const allMetrics = new Set<string>();
       data.forEach((p: Player) => {
         p.physicalRecords?.forEach(r => allMetrics.add(r.metric));
@@ -75,6 +83,13 @@ export default function AdminDashboardPage() {
     fetchPlayers();
   };
 
+  const copyLink = (id: string) => {
+    const url = `${window.location.origin}/carga/${id}`;
+    navigator.clipboard.writeText(url);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000); // Vuelve a decir "Copiar Link" después de 2 segs
+  };
+
   const calc1RM = (peso: number, reps: number) => {
     if (reps <= 1) return peso;
     return Math.round(peso * (1 + reps / 30));
@@ -112,7 +127,6 @@ export default function AdminDashboardPage() {
               Panel de Gestión de Plantel
             </p>
           </div>
-          {/* EL FIX: Ahora el botón apunta a tu archivo real en /admin/settings */}
           <Link href="/admin/settings" className="mt-4 md:mt-0 bg-[var(--color-primary)] text-white px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-md">
             Configuración
           </Link>
@@ -126,20 +140,30 @@ export default function AdminDashboardPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-bold text-gray-500 block mb-1">Nombre</label>
-                  <input type="text" required placeholder="Ej: Juan" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-[var(--color-primary)]" />
+                  <input type="text" required placeholder="Ej: Juan" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-[var(--color-primary)] bg-gray-50" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-gray-500 block mb-1">Apellido</label>
-                  <input type="text" required placeholder="Ej: Pérez" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-[var(--color-primary)]" />
+                  <input type="text" required placeholder="Ej: Pérez" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-[var(--color-primary)] bg-gray-50" />
                 </div>
               </div>
               <div>
-                <label className="text-[10px] font-bold text-gray-500 block mb-1">División (Ej: M15)</label>
-                <input type="text" placeholder="Ej: M17" value={division} onChange={e => setDivision(e.target.value)} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-[var(--color-primary)]" />
+                <label className="text-[10px] font-bold text-gray-500 block mb-1">División</label>
+                <input type="text" placeholder="Ej: M17" value={division} onChange={e => setDivision(e.target.value)} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-[var(--color-primary)] bg-gray-50" />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-gray-500 block mb-1">Posición</label>
-                <input type="text" placeholder="Ej: Pilar" value={position} onChange={e => setPosition(e.target.value)} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-[var(--color-primary)]" />
+                <select 
+                  required
+                  value={position} 
+                  onChange={e => setPosition(e.target.value)} 
+                  className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-[var(--color-primary)] bg-gray-50 font-bold text-gray-700 cursor-pointer"
+                >
+                  <option value="" disabled>Seleccionar puesto...</option>
+                  {RUGBY_POSITIONS.map(pos => (
+                    <option key={pos} value={pos}>{pos}</option>
+                  ))}
+                </select>
               </div>
               <button type="submit" disabled={isSubmitting} className="w-full bg-[var(--color-primary)] text-white font-black text-xs py-3 rounded-lg uppercase tracking-widest mt-4 hover:opacity-90 transition-opacity disabled:opacity-50">
                 {isSubmitting ? 'Guardando...' : 'Guardar Jugador'}
@@ -168,8 +192,14 @@ export default function AdminDashboardPage() {
                     <tr key={player.id} className="hover:bg-gray-50 transition-colors">
                       <td className="py-3 px-2 font-bold text-gray-800">{player.lastName}, {player.firstName}</td>
                       <td className="py-3 px-2 text-gray-500 text-xs">{player.division || '-'}</td>
-                      <td className="py-3 px-2 text-gray-500 text-xs">{player.position || '-'}</td>
+                      <td className="py-3 px-2 text-[var(--color-primary)] font-bold text-xs">{player.position || '-'}</td>
                       <td className="py-3 px-2 text-right space-x-3">
+                        <button 
+                          onClick={() => copyLink(player.id)} 
+                          className={`text-[10px] font-black uppercase tracking-widest transition-colors ${copiedId === player.id ? 'text-green-500' : 'text-gray-400 hover:text-gray-800'}`}
+                        >
+                          {copiedId === player.id ? '¡COPIADO!' : 'Copiar Link'}
+                        </button>
                         <Link href={`/admin/players/${player.id}`} className="text-[10px] font-black text-[var(--color-primary)] hover:underline uppercase tracking-widest">
                           Ver Perfil
                         </Link>
