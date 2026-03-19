@@ -7,7 +7,7 @@ import { currentConfig } from "@/lib/tenantConfig";
 import { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 type MatchStat = { id: string; date: string; tackles: number; tries: number; minutes: number; conversions: number; yellowCards: number; redCards: number; sensation: number | null; notes: string | null };
-type PhysicalRecord = { id: string; metric: string; value: number; date: string };
+type PhysicalRecord = { id: string; metric: string; value: number; reps: number; date: string }; // Agregado reps
 type Player = {
   id: string;
   firstName: string;
@@ -22,9 +22,10 @@ export default function PlayerProfilePage() {
   const params = useParams();
   const router = useRouter();
   const [player, setPlayer] = useState<Player | null>(null);
-  const [availableMetrics, setAvailableMetrics] = useState<any[]>([]); // Métricas de la DB
+  const [availableMetrics, setAvailableMetrics] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Estados Partido
   const [showStatForm, setShowStatForm] = useState(false);
   const [statDate, setStatDate] = useState('');
   const [minutes, setMinutes] = useState('80');
@@ -32,9 +33,11 @@ export default function PlayerProfilePage() {
   const [tries, setTries] = useState('0');
   const [expandedStatId, setExpandedStatId] = useState<string | null>(null);
 
+  // Estados Físico
   const [showPhysicalForm, setShowPhysicalForm] = useState(false);
   const [selectedMetricId, setSelectedMetricId] = useState("");
   const [value, setValue] = useState('');
+  const [reps, setReps] = useState('1'); // Nuevo estado para reps
   const [physDate, setPhysDate] = useState(new Date().toISOString().split('T')[0]);
   const [expandedPhysDate, setExpandedPhysDate] = useState<string | null>(null);
 
@@ -68,6 +71,12 @@ export default function PlayerProfilePage() {
 
   const currentMetricObj = availableMetrics.find(m => m.id === selectedMetricId);
 
+  // Fórmula de Epley
+  const calc1RM = (peso: number, reps: number) => {
+    if (reps <= 1) return peso;
+    return Math.round(peso * (1 + reps / 30));
+  };
+
   const handleAddStat = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await fetch(`/api/players/${params.id}/stats`, {
@@ -87,10 +96,10 @@ export default function PlayerProfilePage() {
     const res = await fetch(`/api/players/${params.id}/physical`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ metric: currentMetricObj.name, value, date: physDate }),
+      body: JSON.stringify({ metric: currentMetricObj.name, value: parseFloat(value), reps: parseInt(reps), date: physDate }),
     });
     if (res.ok) {
-      setValue(''); setShowPhysicalForm(false);
+      setValue(''); setReps('1'); setShowPhysicalForm(false);
       setSelectedChartMetric(currentMetricObj.name); 
       fetchPlayer();
     }
@@ -119,10 +128,22 @@ export default function PlayerProfilePage() {
     Tackles: stat.tackles, Tries: stat.tries, Minutos: stat.minutes,
   })).reverse();
 
-  const physicalChartData = player.physicalRecords.filter(r => r.metric === selectedChartMetric).map((r) => ({
-    fecha: new Date(r.date).toLocaleDateString('es-AR', { timeZone: 'UTC', month: 'short', day: 'numeric' }),
-    Valor: r.value
-  })).reverse();
+  // Lógica del Gráfico: Tomar el 1RM máximo por día para tener una curva limpia
+  const metricRecordsChronological = [...player.physicalRecords].reverse().filter(r => r.metric === selectedChartMetric);
+  const dailyMax1RM: Record<string, number> = {};
+  
+  metricRecordsChronological.forEach(r => {
+    const dateStr = new Date(r.date).toLocaleDateString('es-AR', { timeZone: 'UTC', month: 'short', day: 'numeric' });
+    const current1RM = calc1RM(r.value, r.reps);
+    if (!dailyMax1RM[dateStr] || current1RM > dailyMax1RM[dateStr]) {
+      dailyMax1RM[dateStr] = current1RM;
+    }
+  });
+
+  const physicalChartData = Object.keys(dailyMax1RM).map(date => ({
+    fecha: date,
+    '1RM': dailyMax1RM[date]
+  }));
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 md:p-10 text-gray-900 font-sans">
@@ -196,16 +217,18 @@ export default function PlayerProfilePage() {
             {showPhysicalForm && (
               <form onSubmit={handleAddPhysical} className="mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-4">
                 <div className="flex gap-2">
-                  <select value={selectedMetricId} onChange={(e) => setSelectedMetricId(e.target.value)} className="flex-1 bg-white border border-gray-200 rounded-xl p-2 text-xs font-bold uppercase outline-none focus:ring-2 focus:ring-[var(--color-primary)]">
+                  <select value={selectedMetricId} onChange={(e) => setSelectedMetricId(e.target.value)} className="flex-[2] bg-white border border-gray-200 rounded-xl p-2 text-xs font-bold uppercase outline-none focus:ring-2 focus:ring-[var(--color-primary)]">
                     {availableMetrics.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
-                  <div className="relative w-24">
+                  <div className="relative flex-1">
                     <input type="number" placeholder="Valor" required value={value} onChange={(e) => setValue(e.target.value)} className="w-full bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)] text-center font-bold" />
-                    <span className="absolute -top-2 -right-1 bg-gray-800 text-white text-[8px] px-1.5 py-0.5 rounded font-black uppercase">{currentMetricObj?.unit || '--'}</span>
+                  </div>
+                  <div className="relative flex-1">
+                    <input type="number" placeholder="Reps" required value={reps} onChange={(e) => setReps(e.target.value)} className="w-full bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)] text-center font-bold" />
                   </div>
                 </div>
                 <input type="date" required value={physDate} onChange={(e) => setPhysDate(e.target.value)} className="w-full bg-white border-gray-200 rounded-xl p-2 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]" />
-                <button type="submit" className="w-full bg-[var(--color-primary)] text-[var(--color-secondary)] font-black text-xs py-3 rounded-xl uppercase tracking-widest shadow-md">Guardar Medición</button>
+                <button type="submit" className="w-full bg-[var(--color-primary)] text-[var(--color-secondary)] font-black text-xs py-3 rounded-xl uppercase tracking-widest shadow-md">Guardar Serie</button>
               </form>
             )}
 
@@ -220,8 +243,9 @@ export default function PlayerProfilePage() {
                     <div className="bg-gray-50 p-4 mt-1 rounded-xl border border-gray-100 space-y-3">
                       {groupedPhysical[dateKey].map((record) => (
                         <div key={record.id} className="flex justify-between items-center text-xs text-gray-500 border-b border-gray-100 pb-2 last:border-0 last:pb-0">
-                          <span><strong className="text-gray-700">{record.metric}:</strong> {record.value}</span>
-                          <button onClick={() => handleDeletePhysical(record.id)} className="text-red-300 hover:text-red-500 font-black">X</button>
+                          <span className="flex-1"><strong className="text-gray-700">{record.metric}:</strong> {record.value} x {record.reps}</span>
+                          <span className="flex-1 text-center font-black text-[var(--color-primary)]">1RM: {calc1RM(record.value, record.reps)}</span>
+                          <button onClick={() => handleDeletePhysical(record.id)} className="text-red-300 hover:text-red-500 font-black ml-2">X</button>
                         </div>
                       ))}
                     </div>
@@ -233,7 +257,7 @@ export default function PlayerProfilePage() {
 
         </div>
 
-        {/* GRÁFICOS CON COLORES TORQUE LAB */}
+        {/* GRÁFICOS */}
         {(player.matchStats.length > 0 || player.physicalRecords.length > 0) && (
           <section className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mb-8">
             <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-10 border-b pb-2">RENDIMIENTO VISUAL</h2>
@@ -254,10 +278,12 @@ export default function PlayerProfilePage() {
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
+              
+              {/* NUEVO GRÁFICO 1RM */}
               <div className="h-80 flex flex-col">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em]">Evolución Física</h3>
-                  <select value={selectedChartMetric} onChange={(e) => setSelectedChartMetric(e.target.value)} className="text-[10px] border-none bg-gray-50 font-bold uppercase p-2 rounded-lg outline-none">
+                  <h3 className="text-[10px] font-black text-[var(--color-primary)] uppercase tracking-[0.2em]">1RM Estimado Histórico</h3>
+                  <select value={selectedChartMetric} onChange={(e) => setSelectedChartMetric(e.target.value)} className="text-[10px] border-none bg-gray-50 font-bold uppercase p-2 rounded-lg outline-none cursor-pointer">
                     {Array.from(new Set(player.physicalRecords.map(r => r.metric))).map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
@@ -267,7 +293,8 @@ export default function PlayerProfilePage() {
                     <XAxis dataKey="fecha" tick={{ fontSize: 10, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: '#94A3B8' }} domain={['auto', 'auto']} axisLine={false} tickLine={false} />
                     <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                    <Line type="monotone" dataKey="Valor" stroke="var(--color-primary)" strokeWidth={4} dot={{ r: 6, fill: "var(--color-primary)" }} activeDot={{ r: 8 }} />
+                    {/* DataKey cambiado a 1RM */}
+                    <Line type="monotone" dataKey="1RM" stroke="var(--color-primary)" strokeWidth={4} dot={{ r: 6, fill: "var(--color-primary)" }} activeDot={{ r: 8 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
