@@ -16,153 +16,223 @@ type Player = {
 export default function AdminDashboardPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Estados del Formulario
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [division, setDivision] = useState('');
+  const [position, setPosition] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Estados del Leaderboard
   const [selectedLeaderboardMetric, setSelectedLeaderboardMetric] = useState<string>('');
   const [metrics, setMetrics] = useState<string[]>([]);
 
-  useEffect(() => {
-    fetch('/api/players')
-      .then(res => res.json())
-      .then(data => {
-        setPlayers(data);
-        
-        // Extraer métricas únicas de todo el plantel para el selector del ranking
-        const allMetrics = new Set<string>();
-        data.forEach((p: Player) => {
-          p.physicalRecords?.forEach(r => allMetrics.add(r.metric));
-        });
-        const metricsArray = Array.from(allMetrics);
-        setMetrics(metricsArray);
-        if (metricsArray.length > 0) setSelectedLeaderboardMetric(metricsArray[0]);
-        
-        setLoading(false);
+  const fetchPlayers = async () => {
+    const res = await fetch('/api/players');
+    if (res.ok) {
+      const data = await res.json();
+      setPlayers(data);
+      
+      // Extraer métricas para el Leaderboard
+      const allMetrics = new Set<string>();
+      data.forEach((p: Player) => {
+        p.physicalRecords?.forEach(r => allMetrics.add(r.metric));
       });
+      const metricsArray = Array.from(allMetrics);
+      setMetrics(metricsArray);
+      if (metricsArray.length > 0 && !selectedLeaderboardMetric) {
+         setSelectedLeaderboardMetric(metricsArray[0]);
+      }
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchPlayers();
   }, []);
+
+  const handleAddPlayer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const res = await fetch('/api/players', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firstName, lastName, division, position }),
+    });
+    if (res.ok) {
+      setFirstName(''); setLastName(''); setDivision(''); setPosition('');
+      fetchPlayers();
+    } else {
+      alert('Error al crear jugador');
+    }
+    setIsSubmitting(false);
+  };
+
+  const handleDeletePlayer = async (id: string) => {
+    if (!confirm('¿Seguro que querés eliminar a este atleta? Se borrará todo su historial.')) return;
+    await fetch(`/api/players/${id}`, { method: 'DELETE' });
+    fetchPlayers();
+  };
 
   const calc1RM = (peso: number, reps: number) => {
     if (reps <= 1) return peso;
     return Math.round(peso * (1 + reps / 30));
   };
 
-  // Lógica core: Procesar todo el plantel y armar el Ranking
   const getLeaderboard = () => {
     if (!selectedLeaderboardMetric) return [];
-
     const leaderboard = players.map(player => {
       const records = player.physicalRecords?.filter(r => r.metric === selectedLeaderboardMetric) || [];
       if (records.length === 0) return null;
-
       const max1RM = Math.max(...records.map(r => calc1RM(r.value, r.reps)));
-      return {
-        id: player.id,
-        name: `${player.lastName}, ${player.firstName}`,
-        division: player.division,
-        max1RM
-      };
+      return { id: player.id, name: `${player.lastName}, ${player.firstName}`, division: player.division, max1RM };
     }).filter(Boolean) as { id: string; name: string; division: string | null; max1RM: number }[];
-
     return leaderboard.sort((a, b) => b.max1RM - a.max1RM);
   };
 
   if (loading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <p className="text-gray-400 font-bold uppercase tracking-widest text-xs animate-pulse">Sincronizando Base de Datos...</p>
+      <p className="text-[var(--color-primary)] font-bold uppercase tracking-widest text-xs animate-pulse">Sincronizando...</p>
     </div>
   );
 
   const leaderboardData = getLeaderboard();
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 md:p-10 text-gray-900 font-sans">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8 text-gray-900 font-sans">
       <div className="max-w-7xl mx-auto">
         
-        <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-4 pb-6" style={{ borderColor: "var(--color-primary)" }}>
+        <header className="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-t-2xl border-b-8 shadow-sm mb-8" style={{ borderColor: 'var(--color-primary)' }}>
           <div>
-            <h1 className="text-4xl font-black tracking-tighter uppercase italic" style={{ color: "var(--color-secondary)" }}>
-              Centro de Comando
-            </h1>
-            <p className="text-gray-500 font-bold text-xs uppercase tracking-widest mt-1">
+            <h1 className="text-3xl font-black uppercase tracking-tighter text-gray-900">
               {currentConfig.tenantName}
+            </h1>
+            <p className="text-gray-500 font-bold text-[10px] uppercase tracking-widest mt-1">
+              Panel de Gestión de Plantel
             </p>
           </div>
-          <div className="flex gap-4">
-            <Link href="/admin/config" className="bg-white border border-gray-200 px-6 py-3 rounded-xl text-xs font-black text-gray-400 hover:text-[var(--color-primary)] transition-all uppercase tracking-widest shadow-sm">
-              Configuración de Métricas
-            </Link>
-          </div>
+          {/* EL FIX: Ahora el botón apunta a tu archivo real en /admin/settings */}
+          <Link href="/admin/settings" className="mt-4 md:mt-0 bg-[var(--color-primary)] text-white px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-md">
+            Configuración
+          </Link>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           
-          {/* COLUMNA IZQUIERDA: PLANTEL ACTIVO */}
-          <section className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-            <div className="flex justify-between items-center mb-6 border-b pb-4">
-              <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest">Plantel Activo</h2>
-              <span className="text-[10px] bg-[var(--color-primary)] text-[var(--color-secondary)] px-3 py-1 rounded-full font-black uppercase tracking-widest shadow-sm">
-                {players.length} Atletas
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-              {players.map(player => (
-                <Link key={player.id} href={`/admin/players/${player.id}`} className="block bg-gray-50 p-5 rounded-2xl border border-gray-100 hover:border-[var(--color-primary)] hover:shadow-md active:scale-95 transition-all group">
-                  <h3 className="font-black text-gray-800 uppercase tracking-tighter group-hover:text-[var(--color-primary)] transition-colors text-sm">
-                    {player.lastName}, {player.firstName}
-                  </h3>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1.5">
-                    {player.position || 'Sin pos.'} | {player.division || 'Sin div.'}
-                  </p>
-                </Link>
-              ))}
-              {players.length === 0 && (
-                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest col-span-2 text-center py-10">No hay jugadores registrados en el sistema.</p>
-              )}
-            </div>
+          <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
+            <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 border-b border-gray-100 pb-2">Nuevo Registro</h2>
+            <form onSubmit={handleAddPlayer} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 block mb-1">Nombre</label>
+                  <input type="text" required placeholder="Ej: Juan" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-[var(--color-primary)]" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-500 block mb-1">Apellido</label>
+                  <input type="text" required placeholder="Ej: Pérez" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-[var(--color-primary)]" />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 block mb-1">División (Ej: M15)</label>
+                <input type="text" placeholder="Ej: M17" value={division} onChange={e => setDivision(e.target.value)} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-[var(--color-primary)]" />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 block mb-1">Posición</label>
+                <input type="text" placeholder="Ej: Pilar" value={position} onChange={e => setPosition(e.target.value)} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-[var(--color-primary)]" />
+              </div>
+              <button type="submit" disabled={isSubmitting} className="w-full bg-[var(--color-primary)] text-white font-black text-xs py-3 rounded-lg uppercase tracking-widest mt-4 hover:opacity-90 transition-opacity disabled:opacity-50">
+                {isSubmitting ? 'Guardando...' : 'Guardar Jugador'}
+              </button>
+            </form>
           </section>
 
-          {/* COLUMNA DERECHA: LEADERBOARD 1RM */}
-          <section className="bg-[var(--color-secondary)] p-6 rounded-3xl shadow-xl border border-gray-800 text-white flex flex-col h-[585px]">
-            <div className="mb-6 border-b border-gray-700 pb-5">
-              <h2 className="text-xs font-black text-[var(--color-primary)] uppercase tracking-widest mb-4 flex items-center gap-2">
-                🏆 Ranking 1RM
-              </h2>
-              <select 
-                value={selectedLeaderboardMetric} 
-                onChange={e => setSelectedLeaderboardMetric(e.target.value)}
-                className="w-full bg-gray-800 border-none text-white text-xs font-black uppercase p-3.5 rounded-xl outline-none focus:ring-2 focus:ring-[var(--color-primary)] cursor-pointer tracking-widest"
-              >
-                {metrics.length > 0 ? (
-                  metrics.map(m => <option key={m} value={m}>{m}</option>)
-                ) : (
-                  <option>Sin datos físicos...</option>
-                )}
-              </select>
+          <section className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-2">
+              <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest">Lista del Plantel</h2>
+              <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded">Total Atletas: {players.length}</span>
             </div>
-
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-              {leaderboardData.length > 0 ? (
-                <ul className="space-y-3">
-                  {leaderboardData.map((entry, index) => (
-                    <li key={entry.id} className="flex items-center gap-4 bg-gray-800 p-4 rounded-2xl border border-gray-700 hover:bg-gray-750 transition-colors">
-                      <span className={`text-xl font-black w-6 text-center tracking-tighter ${index === 0 ? 'text-yellow-400 drop-shadow-md' : index === 1 ? 'text-gray-300' : index === 2 ? 'text-amber-600' : 'text-gray-600'}`}>
-                        {index + 1}
-                      </span>
-                      <div className="flex-1 truncate">
-                        <p className="text-xs font-black uppercase truncate text-gray-100">{entry.name}</p>
-                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest truncate mt-0.5">{entry.division || '-'}</p>
-                      </div>
-                      <span className="text-2xl font-black text-[var(--color-primary)] tracking-tighter">
-                        {entry.max1RM}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest text-center mt-10">Faltan datos para armar el ranking.</p>
-              )}
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="text-[10px] text-gray-400 uppercase font-black tracking-widest border-b border-gray-100">
+                  <tr>
+                    <th className="pb-3 px-2">Atleta</th>
+                    <th className="pb-3 px-2">División</th>
+                    <th className="pb-3 px-2">Posición</th>
+                    <th className="pb-3 px-2 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {players.length > 0 ? players.map(player => (
+                    <tr key={player.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-2 font-bold text-gray-800">{player.lastName}, {player.firstName}</td>
+                      <td className="py-3 px-2 text-gray-500 text-xs">{player.division || '-'}</td>
+                      <td className="py-3 px-2 text-gray-500 text-xs">{player.position || '-'}</td>
+                      <td className="py-3 px-2 text-right space-x-3">
+                        <Link href={`/admin/players/${player.id}`} className="text-[10px] font-black text-[var(--color-primary)] hover:underline uppercase tracking-widest">
+                          Ver Perfil
+                        </Link>
+                        <button onClick={() => handleDeletePlayer(player.id)} className="text-[10px] font-black text-red-400 hover:underline uppercase tracking-widest">
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={4} className="text-center py-10 text-xs text-gray-400 font-bold uppercase tracking-widest">
+                        Aún no hay atletas registrados.<br/>Usa el formulario de la izquierda para agregar el primero.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </section>
-
         </div>
+
+        <section className="bg-gray-900 p-6 rounded-2xl shadow-xl border border-gray-800 text-white">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-6 border-b border-gray-800 pb-4 gap-4">
+            <h2 className="text-[12px] font-black text-[var(--color-primary)] uppercase tracking-[0.2em] flex items-center gap-2">
+              🏆 Ranking Global 1RM
+            </h2>
+            <select 
+              value={selectedLeaderboardMetric} 
+              onChange={e => setSelectedLeaderboardMetric(e.target.value)}
+              className="bg-gray-800 border border-gray-700 text-white text-xs font-black uppercase px-4 py-2 rounded-lg outline-none focus:ring-1 focus:ring-[var(--color-primary)] cursor-pointer tracking-widest"
+            >
+              {metrics.length > 0 ? (
+                metrics.map(m => <option key={m} value={m}>{m}</option>)
+              ) : (
+                <option>Sin métricas...</option>
+              )}
+            </select>
+          </div>
+
+          <div className="overflow-x-auto">
+            {leaderboardData.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {leaderboardData.slice(0, 10).map((entry, index) => (
+                  <div key={entry.id} className="flex items-center gap-4 bg-gray-800 p-4 rounded-xl border border-gray-700">
+                    <span className={`text-2xl font-black w-8 text-center tracking-tighter ${index === 0 ? 'text-yellow-400' : index === 1 ? 'text-gray-300' : index === 2 ? 'text-amber-600' : 'text-gray-500'}`}>
+                      {index + 1}
+                    </span>
+                    <div className="flex-1 truncate">
+                      <p className="text-sm font-black uppercase truncate text-white">{entry.name}</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest truncate">{entry.division || '-'}</p>
+                    </div>
+                    <span className="text-2xl font-black text-white tracking-tighter">
+                      {entry.max1RM}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest text-center py-6">Faltan datos de fuerza en el plantel.</p>
+            )}
+          </div>
+        </section>
+
       </div>
     </div>
   );
