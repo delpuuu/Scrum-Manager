@@ -1,23 +1,35 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import * as jose from 'jose';
 
-export function middleware(request: NextRequest) {
-  const token = request.cookies.get('auth_token');
-  const { pathname } = request.nextUrl;
+export async function middleware(request: NextRequest) {
+  // Solo protegemos las rutas que empiezan con /admin
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    const token = request.cookies.get('admin_token')?.value;
 
-  // 1. Si intenta entrar a /admin y NO tiene token, mandarlo al Login
-  if (!token && pathname.startsWith('/admin') && pathname !== '/admin/login') {
-    return NextResponse.redirect(new URL('/admin/login', request.url));
+    // Si no hay cookie, lo pateamos al login
+    if (!token) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+
+    try {
+      // Verificamos matemáticamente que el token sea nuestro y no haya expirado
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+      await jose.jwtVerify(token, secret);
+      
+      return NextResponse.next();
+    } catch (error) {
+      // Si el token es inválido o expiró, lo pateamos al login y limpiamos la cookie
+      const response = NextResponse.redirect(new URL('/login', request.url));
+      response.cookies.delete('admin_token');
+      return response;
+    }
   }
-
-  // 2. Si YA tiene token e intenta ir al Login, mandarlo al Dashboard
-  if (token && pathname === '/admin/login') {
-    return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-  }
-
+  
   return NextResponse.next();
 }
 
+// Configuración para que el middleware solo se ejecute donde importa y no ralentice la app
 export const config = {
   matcher: ['/admin/:path*'],
 };
