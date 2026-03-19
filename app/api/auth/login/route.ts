@@ -12,12 +12,15 @@ export async function POST(request: Request) {
 
     const admin = await prisma.admin.findUnique({ where: { email } });
 
-    // NOTA: Para producción, la contraseña debería compararse con bcrypt
     if (!admin || admin.password !== password) {
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
     }
 
-    // Generar el JWT con expiración de 7 días
+    // Validación estricta del entorno
+    if (!process.env.JWT_SECRET) {
+      throw new Error("La variable JWT_SECRET no está definida en el archivo .env");
+    }
+
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const token = await new jose.SignJWT({ id: admin.id, email: admin.email })
       .setProtectedHeader({ alg: 'HS256' })
@@ -26,18 +29,17 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({ success: true, message: 'Login exitoso' });
     
-    // Configurar la Cookie robusta
     response.cookies.set('admin_token', token, {
-      httpOnly: true, // Inaccesible por JavaScript del cliente (Seguridad)
-      secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 días en segundos
+      maxAge: 60 * 60 * 24 * 7,
       path: '/',
     });
 
     return response;
-  } catch (error) {
-    console.error("Error en login:", error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  } catch (error: any) {
+    // ENVIAMOS EL ERROR REAL AL FRONTEND
+    return NextResponse.json({ error: `Falla técnica: ${error.message}` }, { status: 500 });
   }
 }
