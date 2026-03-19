@@ -7,7 +7,7 @@ import { currentConfig } from "@/lib/tenantConfig";
 import { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 type MatchStat = { id: string; date: string; tackles: number; tries: number; minutes: number; conversions: number; yellowCards: number; redCards: number; sensation: number | null; notes: string | null };
-type PhysicalRecord = { id: string; metric: string; value: number; reps: number; date: string }; // Agregado reps
+type PhysicalRecord = { id: string; metric: string; value: number; reps: number; date: string };
 type Player = {
   id: string;
   firstName: string;
@@ -37,11 +37,15 @@ export default function PlayerProfilePage() {
   const [showPhysicalForm, setShowPhysicalForm] = useState(false);
   const [selectedMetricId, setSelectedMetricId] = useState("");
   const [value, setValue] = useState('');
-  const [reps, setReps] = useState('1'); // Nuevo estado para reps
+  const [reps, setReps] = useState('1');
   const [physDate, setPhysDate] = useState(new Date().toISOString().split('T')[0]);
   const [expandedPhysDate, setExpandedPhysDate] = useState<string | null>(null);
 
+  // Estados Gráfico
   const [selectedChartMetric, setSelectedChartMetric] = useState<string>('');
+  const [chartTimeFilter, setChartTimeFilter] = useState<'all' | 'week' | 'month' | 'year' | 'custom'>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
   const fetchPlayer = async () => {
     const res = await fetch(`/api/players/${params.id}`);
@@ -71,7 +75,6 @@ export default function PlayerProfilePage() {
 
   const currentMetricObj = availableMetrics.find(m => m.id === selectedMetricId);
 
-  // Fórmula de Epley
   const calc1RM = (peso: number, reps: number) => {
     if (reps <= 1) return peso;
     return Math.round(peso * (1 + reps / 30));
@@ -128,8 +131,31 @@ export default function PlayerProfilePage() {
     Tackles: stat.tackles, Tries: stat.tries, Minutos: stat.minutes,
   })).reverse();
 
-  // Lógica del Gráfico: Tomar el 1RM máximo por día para tener una curva limpia
-  const metricRecordsChronological = [...player.physicalRecords].reverse().filter(r => r.metric === selectedChartMetric);
+  // Lógica de Filtrado por Fecha para el Gráfico Físico
+  let filteredMetricRecords = player.physicalRecords.filter(r => r.metric === selectedChartMetric);
+  const now = new Date();
+
+  if (chartTimeFilter === 'week') {
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    filteredMetricRecords = filteredMetricRecords.filter(r => new Date(r.date) >= oneWeekAgo);
+  } else if (chartTimeFilter === 'month') {
+    const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+    filteredMetricRecords = filteredMetricRecords.filter(r => new Date(r.date) >= oneMonthAgo);
+  } else if (chartTimeFilter === 'year') {
+    const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    filteredMetricRecords = filteredMetricRecords.filter(r => new Date(r.date) >= oneYearAgo);
+  } else if (chartTimeFilter === 'custom' && customStartDate && customEndDate) {
+    const start = new Date(customStartDate);
+    const end = new Date(customEndDate);
+    end.setHours(23, 59, 59, 999);
+    filteredMetricRecords = filteredMetricRecords.filter(r => {
+      const d = new Date(r.date);
+      return d >= start && d <= end;
+    });
+  }
+
+  // Ordenar cronológicamente y obtener el 1RM máximo del día
+  const metricRecordsChronological = [...filteredMetricRecords].reverse();
   const dailyMax1RM: Record<string, number> = {};
   
   metricRecordsChronological.forEach(r => {
@@ -279,21 +305,39 @@ export default function PlayerProfilePage() {
                 </ResponsiveContainer>
               </div>
               
-              {/* NUEVO GRÁFICO 1RM */}
               <div className="h-80 flex flex-col">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-[10px] font-black text-[var(--color-primary)] uppercase tracking-[0.2em]">1RM Estimado Histórico</h3>
-                  <select value={selectedChartMetric} onChange={(e) => setSelectedChartMetric(e.target.value)} className="text-[10px] border-none bg-gray-50 font-bold uppercase p-2 rounded-lg outline-none cursor-pointer">
-                    {Array.from(new Set(player.physicalRecords.map(r => r.metric))).map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
+                <div className="flex flex-col gap-3 mb-6">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-[10px] font-black text-[var(--color-primary)] uppercase tracking-[0.2em]">1RM Estimado Histórico</h3>
+                    <div className="flex gap-2">
+                      <select value={chartTimeFilter} onChange={(e) => setChartTimeFilter(e.target.value as any)} className="text-[10px] border-none bg-gray-50 font-bold uppercase p-2 rounded-lg outline-none cursor-pointer">
+                        <option value="all">Histórico</option>
+                        <option value="week">Última Semana</option>
+                        <option value="month">Último Mes</option>
+                        <option value="year">Último Año</option>
+                        <option value="custom">Rango Personalizado</option>
+                      </select>
+                      <select value={selectedChartMetric} onChange={(e) => setSelectedChartMetric(e.target.value)} className="text-[10px] border-none bg-gray-50 font-bold uppercase p-2 rounded-lg outline-none cursor-pointer">
+                        {Array.from(new Set(player.physicalRecords.map(r => r.metric))).map(m => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  
+                  {chartTimeFilter === 'custom' && (
+                    <div className="flex justify-end gap-2 animate-fade-in">
+                      <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} className="text-[10px] bg-gray-50 p-2 rounded-lg border-none outline-none font-bold text-gray-600" />
+                      <span className="text-xs text-gray-300 self-center">-</span>
+                      <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} className="text-[10px] bg-gray-50 p-2 rounded-lg border-none outline-none font-bold text-gray-600" />
+                    </div>
+                  )}
                 </div>
+
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={physicalChartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                     <XAxis dataKey="fecha" tick={{ fontSize: 10, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: '#94A3B8' }} domain={['auto', 'auto']} axisLine={false} tickLine={false} />
                     <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                    {/* DataKey cambiado a 1RM */}
                     <Line type="monotone" dataKey="1RM" stroke="var(--color-primary)" strokeWidth={4} dot={{ r: 6, fill: "var(--color-primary)" }} activeDot={{ r: 8 }} />
                   </LineChart>
                 </ResponsiveContainer>
