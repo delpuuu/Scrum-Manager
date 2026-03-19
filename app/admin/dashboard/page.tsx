@@ -19,13 +19,15 @@ const RUGBY_POSITIONS = ["Pilar", "Hooker", "Segunda Línea", "Tercera Línea", 
 export default function AdminDashboardPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter(); // Agregado para la navegación por fila
+  const router = useRouter();
 
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [division, setDivision] = useState('');
   const [position, setPosition] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [selectedLeaderboardMetric, setSelectedLeaderboardMetric] = useState<string>('');
@@ -47,23 +49,47 @@ export default function AdminDashboardPage() {
 
   useEffect(() => { fetchPlayers(); }, []);
 
-  const handleAddPlayer = async (e: React.FormEvent) => {
+  // LÓGICA CORREGIDA: Usa PATCH para coincidir con tu backend
+  const handleSavePlayer = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const res = await fetch('/api/players', {
-      method: 'POST',
+    
+    const method = editingId ? 'PATCH' : 'POST';
+    const url = editingId ? `/api/players/${editingId}` : '/api/players';
+
+    const res = await fetch(url, {
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ firstName, lastName, division, position }),
     });
+
     if (res.ok) {
-      setFirstName(''); setLastName(''); setDivision(''); setPosition('');
+      cancelEdit();
       fetchPlayers();
+    } else {
+      alert('Error al guardar jugador.');
     }
     setIsSubmitting(false);
   };
 
+  const startEdit = (player: Player) => {
+    setEditingId(player.id);
+    setFirstName(player.firstName);
+    setLastName(player.lastName);
+    setDivision(player.division || '');
+    setPosition(player.position || '');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setFirstName('');
+    setLastName('');
+    setDivision('');
+    setPosition('');
+  };
+
   const copyLink = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // Evita que al hacer clic en copiar, te lleve al perfil
+    e.stopPropagation();
     const url = `${window.location.origin}/carga/${id}`;
     navigator.clipboard.writeText(url);
     setCopiedId(id);
@@ -97,9 +123,12 @@ export default function AdminDashboardPage() {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
-            <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 border-b border-gray-100 pb-2">Nuevo Registro</h2>
-            <form onSubmit={handleAddPlayer} className="space-y-4">
+          
+          <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit transition-all">
+            <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 border-b border-gray-100 pb-2">
+              {editingId ? 'Editar Registro' : 'Nuevo Registro'}
+            </h2>
+            <form onSubmit={handleSavePlayer} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="text-[10px] font-bold text-gray-500 block mb-1">Nombre</label><input type="text" required value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-[var(--color-primary)] bg-gray-50" /></div>
                 <div><label className="text-[10px] font-bold text-gray-500 block mb-1">Apellido</label><input type="text" required value={lastName} onChange={e => setLastName(e.target.value)} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-[var(--color-primary)] bg-gray-50" /></div>
@@ -112,7 +141,17 @@ export default function AdminDashboardPage() {
                   {RUGBY_POSITIONS.map(pos => <option key={pos} value={pos}>{pos}</option>)}
                 </select>
               </div>
-              <button type="submit" disabled={isSubmitting} className="w-full bg-[var(--color-primary)] text-white font-black text-xs py-3 rounded-lg uppercase tracking-widest mt-4 hover:opacity-90 disabled:opacity-50">Guardar Jugador</button>
+              
+              <div className="flex gap-2 mt-4">
+                <button type="submit" disabled={isSubmitting} className="flex-1 bg-[var(--color-primary)] text-white font-black text-xs py-3 rounded-lg uppercase tracking-widest hover:opacity-90 disabled:opacity-50">
+                  {isSubmitting ? '...' : (editingId ? 'Actualizar' : 'Guardar')}
+                </button>
+                {editingId && (
+                  <button type="button" onClick={cancelEdit} className="flex-1 bg-gray-100 text-gray-500 font-black text-xs py-3 rounded-lg uppercase tracking-widest hover:bg-gray-200">
+                    Cancelar
+                  </button>
+                )}
+              </div>
             </form>
           </section>
 
@@ -138,12 +177,18 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="py-3 px-2 text-gray-500 text-xs">{player.division || '-'}</td>
                       <td className="py-3 px-2 text-[var(--color-primary)] font-bold text-xs">{player.position || '-'}</td>
-                      <td className="py-3 px-2 text-right space-x-3">
+                      <td className="py-3 px-2 text-right space-x-4">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); startEdit(player); }} 
+                          className="text-[10px] font-black uppercase tracking-widest text-[var(--color-primary)] hover:opacity-70 transition-colors"
+                        >
+                          EDITAR
+                        </button>
                         <button 
                           onClick={(e) => copyLink(e, player.id)} 
-                          className={`text-[10px] font-black uppercase tracking-widest bg-white border px-3 py-1.5 rounded-md shadow-sm transition-colors ${copiedId === player.id ? 'border-green-500 text-green-500' : 'border-gray-200 text-gray-500 hover:border-gray-400'}`}
+                          className={`text-[10px] font-black uppercase tracking-widest transition-colors ${copiedId === player.id ? 'text-green-500' : 'text-gray-400 hover:text-gray-600'}`}
                         >
-                          {copiedId === player.id ? '✓ COPIADO' : 'Copiar Link'}
+                          {copiedId === player.id ? '✓' : 'LINK'}
                         </button>
                       </td>
                     </tr>

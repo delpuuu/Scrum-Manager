@@ -57,16 +57,11 @@ export default function PlayerProfilePage() {
 
   useEffect(() => { fetchPlayer(); fetchMetrics(); }, [params.id]);
 
-  // FUNCIÓN PARA ELIMINAR EL JUGADOR COMPLETO
   const handleDeleteFullPlayer = async () => {
     if (!confirm('🚨 ATENCIÓN: ¿Estás seguro de que querés ELIMINAR a este atleta? Se borrará todo su historial físico y de partidos para siempre.')) return;
-    
     const res = await fetch(`/api/players/${params.id}`, { method: 'DELETE' });
-    if (res.ok) {
-      router.push('/admin/dashboard');
-    } else {
-      alert("Hubo un error al intentar eliminar al jugador.");
-    }
+    if (res.ok) router.push('/admin/dashboard');
+    else alert("Hubo un error al intentar eliminar al jugador.");
   };
 
   const handleAddStat = async (e: React.FormEvent) => {
@@ -160,19 +155,13 @@ export default function PlayerProfilePage() {
             </div>
           </div>
           <div className="flex gap-3">
-            <button 
-              onClick={handleDeleteFullPlayer} 
-              className="bg-red-50 text-red-500 border border-red-100 px-6 py-2 rounded-xl text-xs font-black hover:bg-red-500 hover:text-white transition-all uppercase shadow-sm"
-            >
-              Eliminar Atleta
-            </button>
-            <Link href="/admin/dashboard" className="bg-white border border-gray-200 px-6 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-[var(--color-primary)] transition-all uppercase shadow-sm">
-              Volver
-            </Link>
+            <button onClick={handleDeleteFullPlayer} className="bg-red-50 text-red-500 border border-red-100 px-6 py-2 rounded-xl text-xs font-black hover:bg-red-500 hover:text-white transition-all uppercase shadow-sm">Eliminar Atleta</button>
+            <Link href="/admin/dashboard" className="bg-white border border-gray-200 px-6 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-[var(--color-primary)] transition-all uppercase shadow-sm">Volver</Link>
           </div>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          
           <section className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
             <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 border-b pb-2 flex justify-between items-center">
               Estadísticas de Partido
@@ -180,14 +169,30 @@ export default function PlayerProfilePage() {
             </h2>
 
             {showStatForm && (
-              <form onSubmit={handleAddStat} className="mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-4">
-                <input type="date" required value={statDate} onChange={(e) => setStatDate(e.target.value)} className="w-full bg-white border-gray-200 rounded-xl p-2 text-sm outline-none" />
-                <div className="grid grid-cols-3 gap-3">
-                   <input type="number" placeholder="Minutos" required value={minutes} onChange={(e) => setMinutes(e.target.value)} className="bg-white border-gray-200 rounded-xl p-2 text-sm outline-none text-center" />
-                   <input type="number" placeholder="Tackles" required value={tackles} onChange={(e) => setTackles(e.target.value)} className="bg-white border-gray-200 rounded-xl p-2 text-sm outline-none text-center" />
-                   <input type="number" placeholder="Tries" required value={tries} onChange={(e) => setTries(e.target.value)} className="bg-white border-gray-200 rounded-xl p-2 text-sm outline-none text-center" />
+              <form onSubmit={handleAddStat} className="mb-6 bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-4">
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1 ml-1">Fecha del Partido</label>
+                  <input type="date" required value={statDate} onChange={(e) => setStatDate(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-[var(--color-primary)]" />
                 </div>
-                <button type="submit" className="w-full bg-[var(--color-primary)] text-white font-black text-xs py-3 rounded-xl uppercase shadow-md">Guardar Partido</button>
+                
+                <div className="grid grid-cols-3 gap-4">
+                   <div>
+                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1 ml-1 text-center">Minutos</label>
+                     <input type="number" required value={minutes} onChange={(e) => setMinutes(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm outline-none text-center focus:border-[var(--color-primary)]" />
+                   </div>
+                   <div>
+                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1 ml-1 text-center">Tackles</label>
+                     <input type="number" required value={tackles} onChange={(e) => setTackles(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm outline-none text-center focus:border-[var(--color-primary)]" />
+                   </div>
+                   <div>
+                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1 ml-1 text-center">Tries</label>
+                     <input type="number" required value={tries} onChange={(e) => setTries(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm outline-none text-center focus:border-[var(--color-primary)]" />
+                   </div>
+                </div>
+                
+                <button type="submit" className="w-full bg-[var(--color-primary)] text-white font-black text-xs py-4 rounded-xl uppercase tracking-widest mt-2 hover:opacity-90 transition-opacity">
+                  Guardar Partido
+                </button>
               </form>
             )}
 
@@ -201,7 +206,7 @@ export default function PlayerProfilePage() {
                   {expandedStatId === stat.id && (
                     <div className="bg-gray-50 p-4 mt-1 rounded-xl border border-gray-100 text-xs text-gray-500">
                       <p>Minutos: {stat.minutes} | Tackles: {stat.tackles} | Tries: {stat.tries}</p>
-                      <button onClick={() => handleDeleteStat(stat.id)} className="text-red-400 mt-3 font-black uppercase hover:text-red-600 block">Eliminar Registro</button>
+                      <button onClick={() => handleDeleteStat(stat.id)} className="text-red-400 mt-3 font-black uppercase tracking-widest hover:text-red-600 block">Eliminar Registro</button>
                     </div>
                   )}
                 </li>
@@ -216,16 +221,33 @@ export default function PlayerProfilePage() {
             </h2>
 
             {showPhysicalForm && (
-              <form onSubmit={handleAddPhysical} className="mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-4">
-                <div className="flex gap-2">
-                  <select value={selectedMetricId} onChange={(e) => setSelectedMetricId(e.target.value)} className="flex-[2] bg-white border border-gray-200 rounded-xl p-2 text-xs font-bold uppercase outline-none">
+              <form onSubmit={handleAddPhysical} className="mb-6 bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-4">
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1 ml-1">Ejercicio</label>
+                  <select value={selectedMetricId} onChange={(e) => setSelectedMetricId(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs font-bold uppercase outline-none focus:border-[var(--color-primary)]">
                     {availableMetrics.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
-                  <input type="number" placeholder="Valor" required value={value} onChange={(e) => setValue(e.target.value)} className="flex-1 w-full bg-white border-gray-200 rounded-xl p-2 text-sm outline-none text-center font-bold" />
-                  <input type="number" placeholder="Reps" required value={reps} onChange={(e) => setReps(e.target.value)} className="flex-1 w-full bg-white border-gray-200 rounded-xl p-2 text-sm outline-none text-center font-bold" />
                 </div>
-                <input type="date" required value={physDate} onChange={(e) => setPhysDate(e.target.value)} className="w-full bg-white border-gray-200 rounded-xl p-2 text-sm outline-none" />
-                <button type="submit" className="w-full bg-[var(--color-primary)] text-white font-black text-xs py-3 rounded-xl uppercase shadow-md">Guardar Serie</button>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1 ml-1 text-center">Valor / Peso</label>
+                    <input type="number" required value={value} onChange={(e) => setValue(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm outline-none text-center font-bold focus:border-[var(--color-primary)]" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1 ml-1 text-center">Repeticiones</label>
+                    <input type="number" required value={reps} onChange={(e) => setReps(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm outline-none text-center font-bold focus:border-[var(--color-primary)]" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1 ml-1">Fecha</label>
+                  <input type="date" required value={physDate} onChange={(e) => setPhysDate(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-[var(--color-primary)]" />
+                </div>
+                
+                <button type="submit" className="w-full bg-[var(--color-primary)] text-white font-black text-xs py-4 rounded-xl uppercase tracking-widest mt-2 hover:opacity-90 transition-opacity">
+                  Guardar Serie
+                </button>
               </form>
             )}
 
